@@ -10,6 +10,8 @@
   
 #define PORT     8080
 #define MAXLINE 1024
+
+int check_autentication();
   
 // Driver code
 int main() {
@@ -17,9 +19,6 @@ int main() {
     char buffer[MAXLINE];
     char *hello = "Hello from server";
     struct sockaddr_in servaddr, cliaddr;
-    char name[20];
-    char password[20];
-    char line[40];
       
     // Creating socket file descriptor
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
@@ -43,7 +42,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
       
-    int len, n, separador[2];
+    int len, n;
   
     len = sizeof(cliaddr);  //len is value/resuslt
   
@@ -51,7 +50,19 @@ int main() {
                 MSG_WAITALL, ( struct sockaddr *) &cliaddr,
                 &len);
     buffer[n] = '\0';
-    
+      
+    check_autentication(buffer);
+
+    sendto(sockfd, (const char *)hello, strlen(hello), 
+        MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
+            len);
+    printf("Hello message sent.\n");
+
+    return 0;
+}
+
+int check_autentication(char* buffer){
+    int separador[2];
     FILE *data_base;
     int j = 0;
     for(int i = 0; i < MAXLINE; ++i){
@@ -60,7 +71,8 @@ int main() {
          ++j;
        }
     }
-     
+    char name[20];
+    char password[20];
     printf("Nombre: "); 
     for(int i = 0; i < separador[0]; ++i){
        name[i]=buffer[i];
@@ -79,27 +91,22 @@ int main() {
         printf("ERROR: File couldnt be open");
         exit(1);
     }
-   
-    // Mientras que hayan datos en el archivo
-    while(!feof(data_base)){
-        fgets(line, 40, data_base);
 
+    // Mientras que hayan datos en el archivo
+    char file_username[40];
+    char file_password[40];
+    while(!feof(data_base)){
+        fgets(file_username, 40, data_base);
+        fgets(file_password, 40, data_base);
         // Si el usuario y la contrasena son iguales 
-        if(strstr(line, name) != NULL && strstr(line, password) != NULL){
+        if(strstr(file_username, name) != NULL && strstr(file_password, password) != NULL){
                 printf("Autentificacion correcta, puede acceder al sistema \n");
                 break;
         }
     }
     
-    if(strstr(line, name) == NULL || strstr(line, password) == NULL){
+    if(strstr(file_username, name) == NULL || strstr(file_password, password) == NULL){
         printf("Autentificacion incorrecta, no puede acceder al sistema \n");
     }
     fclose(data_base);
-
-    sendto(sockfd, (const char *)hello, strlen(hello), 
-        MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
-            len);
-    printf("Hello message sent.\n"); 
-      
-    return 0;
 }
