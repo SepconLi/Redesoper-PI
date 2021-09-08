@@ -1,16 +1,16 @@
-server: PruebaUDPServer.c
-	cc -g -Wall -Wextra PruebaUDPServer.c -o server -lm && cc -g -Wall -Wextra PruebaUDPClient.c -o client -lm
+server: UDPServer.c
+	rm -rf ./server && rm -rf ./client && cc -g -Wall -Wextra UDPServer.c -o server -lm && cc -g -Wall -Wextra UDPClient.c -o client -lm
 
-client: PruebaUDPClient.c
-	cc -g -Wall -Wextra PruebaUDPClient.c -o client -lm
+client: UDPClient.c
+	cc -g -Wall -Wextra UDPClient.c -o client -lm
 
 .PHONY: s
 s:
-	./server
+	clear && ./server
 
 .PHONY: c
 c:
-	./client
+	clear && ./client
 
 .PHONY: clean
 clean:

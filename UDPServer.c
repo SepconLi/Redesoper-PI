@@ -1,4 +1,6 @@
 // Server side implementation of UDP client-server model
+
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -17,7 +19,6 @@ int check_autentication();
 int main() {
     int sockfd;
     char buffer[MAXLINE];
-    char *hello = "Hello from server";
     struct sockaddr_in servaddr, cliaddr;
       
     // Creating socket file descriptor
@@ -41,23 +42,28 @@ int main() {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-      
-    int len, n;
-  
-    len = sizeof(cliaddr);  //len is value/resuslt
-  
-    n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-                &len);
-    buffer[n] = '\0';
-      
-    check_autentication(buffer);
 
-    sendto(sockfd, (const char *)hello, strlen(hello), 
-        MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
-            len);
-    printf("Hello message sent.\n");
-
+    printf("Server start\n\n");
+        
+    int len = sizeof(cliaddr);  //len is value/resuslt
+    
+    int auten_code = 69;
+    while (auten_code) {
+        printf("\nWaiting for the username and password\n");
+        int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
+        buffer[n] = '\0';
+        auten_code = check_autentication(buffer);
+        printf("Auten code: %d\n", auten_code);
+        if (auten_code != 0) {
+            char* auten_error = "auten_error";
+            printf("Sending: [%s]\n",auten_error);
+            sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+        }
+    }
+    char* auten_sucess = "auten_sucess";
+    sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+    
+    printf("\nServer end\n");
     return 0;
 }
 
@@ -101,12 +107,11 @@ int check_autentication(char* buffer){
         // Si el usuario y la contrasena son iguales 
         if(strstr(file_username, name) != NULL && strstr(file_password, password) != NULL){
                 printf("Autentificacion correcta, puede acceder al sistema \n");
-                break;
+                fclose(data_base);
+                return 0;
         }
     }
-    
-    if(strstr(file_username, name) == NULL || strstr(file_password, password) == NULL){
-        printf("Autentificacion incorrecta, no puede acceder al sistema \n");
-    }
+    printf("Autentificacion incorrecta, no puede acceder al sistema \n");
     fclose(data_base);
+    return 1;
 }
