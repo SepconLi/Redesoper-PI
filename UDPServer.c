@@ -13,10 +13,15 @@
 #define PORT     8080
 #define MAXLINE 1024
 
+int run_udp_server();
 int check_autentication();
   
 // Driver code
 int main() {
+    return run_udp_server();
+}
+
+int run_udp_server() {
     int sockfd;
     char buffer[MAXLINE];
     struct sockaddr_in servaddr, cliaddr;
@@ -48,17 +53,16 @@ int main() {
     int len = sizeof(cliaddr);  //len is value/resuslt
     
     int auten_code = 69;
-    while (auten_code) {
-        printf("\nWaiting for the username and password\n");
-        int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
-        buffer[n] = '\0';
-        auten_code = check_autentication(buffer);
-        printf("Auten code: %d\n", auten_code);
-        if (auten_code != 0) {
-            char* auten_error = "auten_error";
-            printf("Sending: [%s]\n",auten_error);
-            sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
-        }
+    printf("\nWaiting for the username and password\n");
+    int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
+    buffer[n] = '\0';
+    auten_code = check_autentication(buffer);
+    printf("Auten code: %d\n", auten_code);
+    if (auten_code != 0) {
+        char* auten_error = "auten_error";
+        printf("Sending: [%s]\n",auten_error);
+        sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+        return 1;
     }
     char* auten_sucess = "auten_sucess";
     sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
