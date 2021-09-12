@@ -12,9 +12,14 @@
   
 #define PORT     8080
 #define MAXLINE 1024
+#define PACKAGE_LENGTH 20
+#define PACKAGE_MESSAGE_LENGTH 16
+#define PACKAGE_NUMBER_LENGTH 4
 
 int run_udp_server();
 int check_autentication();
+void decode_message(char* buffer);
+int package_number_to_integer(char* buffer);
   
 // Driver code
 int main() {
@@ -57,6 +62,7 @@ int run_udp_server() {
     int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
     buffer[n] = '\0';
     auten_code = check_autentication(buffer);
+
     printf("Auten code: %d\n", auten_code);
     if (auten_code != 0) {
         char* auten_error = "auten_error";
@@ -118,4 +124,47 @@ int check_autentication(char* buffer){
     printf("Autentificacion incorrecta, no puede acceder al sistema \n");
     fclose(data_base);
     return 1;
+}
+
+int receive_file_from_client(int sockfd, struct sockaddr_in* servaddr){
+    //Recibe un mensaje con el numero de paquetes y nombre del archivo 
+    
+    //Confirma que le llego el mensaje inicial y sino lo pide de vuelta
+    //Crea y abre un archivo con el nombre en el mensaje
+    //Ciclo que reciba x cantidad de mensajes/paquetes
+        //Recibe el mensaje en una var
+        //Si el numero de paquete es igual al anterior + 1
+            //Copia el mensaje al final dl archivo
+        //Sino 
+            //Vuelve a pedir el mensaje desde el numero que no se recibio
+    //Imprimir contenidos y cerrar archivo  
+}
+
+void decode_message(char* buffer){
+    int package_number = package_number_to_integer(buffer);
+    // todo: ver si coincide con el ultimo paquete enviado
+    char buffer_message[PACKAGE_MESSAGE_LENGTH];
+    for(int i = 0; i <= PACKAGE_MESSAGE_LENGTH; ++i) {
+        buffer_message[i] = buffer[i+PACKAGE_NUMBER_LENGTH];
+    }
+    int begin = package_number * PACKAGE_MESSAGE_LENGTH;
+    int end = begin + PACKAGE_MESSAGE_LENGTH;
+    int counter = 0;
+    for(int i = begin; i < end; ++i) {
+        // server_string[i] = buffer_message[counter];
+        ++counter;
+    }
+    // agregar el mensaje al final de una variable global
+}
+
+int package_number_to_integer(char* buffer) {
+    // Numero de ejemplo 0362
+    int package_number = 0;
+    int multiply = 1;   // 1, 10, 100, 1000
+    for (int i = PACKAGE_NUMBER_LENGTH-1; i >= 0; --i) {
+        package_number += (buffer[i] - '0') * multiply; // 0 + 2, 2 + 60, 62 + 300, 362 + 0 = 362
+        multiply *= 10;
+    }
+    // printf("\t{Package_number: %d}\n", package_number);
+    return package_number;
 }
