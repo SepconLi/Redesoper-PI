@@ -20,21 +20,27 @@ int run_udp_server();
 int check_autentication();
 void decode_message(char* buffer);
 int package_number_to_integer(char* buffer);
-  
+int receive_file_from_client(int sockfd, struct sockaddr_in* cliaddr);
+
+// VARIABLE GLOBAL. MR. JEISSON GET DOWN!
+char* server_string;
+
 // Driver code
 int main() {
-    return run_udp_server();
+    server_string = (char *) calloc(sizeof(char), 486);
+    int error_status = run_udp_server();
+    free(server_string);
+    return error_status;
 }
 
 int run_udp_server() {
     int sockfd;
-    char buffer[MAXLINE];
-    struct sockaddr_in servaddr, cliaddr;
-      
+    struct sockaddr_in servaddr;
+    struct sockaddr_in cliaddr;
     // Creating socket file descriptor
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) {
         perror("socket creation failed");
-        exit(EXIT_FAILURE);
+        return 4;
     }
       
     memset(&servaddr, 0, sizeof(servaddr));
@@ -54,27 +60,29 @@ int run_udp_server() {
     }
 
     printf("Server start\n\n");
-        
+    /*  
+
     int len = sizeof(cliaddr);  //len is value/resuslt
     
     int auten_code = 69;
+    char buffer[MAXLINE];
     printf("\nWaiting for the username and password\n");
     int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
     buffer[n] = '\0';
     auten_code = check_autentication(buffer);
-
+    
     printf("Auten code: %d\n", auten_code);
     if (auten_code != 0) {
-        char* auten_error = "auten_error";servaddr
-        printf("Sending: [%s]\n",auten_error);
+        char* auten_error = "auten_error";
+        printf("Sending: [%s]\n", auten_error);
         sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
         return 1;
     }
     char* auten_sucess = "auten_sucess";
     sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
 
-
-    int error = receive_file_from_client(sockfd, cliaddr);
+    */
+    int error = receive_file_from_client(sockfd, &cliaddr);
     printf("\nServer end\n");
     return error;
 }
@@ -118,34 +126,44 @@ int check_autentication(char* buffer){
         fgets(file_password, 40, data_base);
         // Si el usuario y la contrasena son iguales 
         if(strstr(file_username, name) != NULL && strstr(file_password, password) != NULL){
-                printf("Autentificacion correcta, puede acceder al sistema \n");
+                printf("Autentication completed, access granted\n");
                 fclose(data_base);
                 return 0;
         }
     }
-    printf("Autentificacion incorrecta, no puede acceder al sistema \n");
+    printf("Autentication failed, access denied\n");
     fclose(data_base);
     return 1;
 }
 
 int receive_file_from_client(int sockfd, struct sockaddr_in* cliaddr){
     //Recibe un mensaje con el numero de paquetes y nombre del archivo 
-
-    //Confirma que le llego el mensaje inicial y sino lo pide de vuelta
+    socklen_t len = sizeof(cliaddr);  //len is value/resuslt
+    printf("\nWaiting for the setup message\n");
+    char buffer[PACKAGE_LENGTH];
+    int n = recvfrom(sockfd, (char *)buffer, PACKAGE_LENGTH, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
+    buffer[n] = '\0';
+    printf("Message received: \"%s\"\n", buffer);
+    //TODO: Confirma que le llego el mensaje inicial y sino lo pide de vuelta
     //Crea y abre un archivo con el nombre en el mensaje
     //Ciclo que reciba x cantidad de mensajes/paquetes
+    for (int i = 0; i < PACKAGE_LENGTH; ++i ) {
         //Recibe el mensaje en una var
+        int n = recvfrom(sockfd, (char *)buffer, PACKAGE_LENGTH, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
+        buffer[n] = '\0';
+        decode_message(buffer);
         //Si el numero de paquete es igual al anterior + 1
             //Copia el mensaje al final dl archivo
         //Sino 
             //Vuelve a pedir el mensaje desde el numero que no se recibio
-    //Imprimir contenidos y cerrar archivo  
+    }
+    //Imprimir contenidos y cerrar archivo 
+    printf("%s\n",server_string);
     return 0;
 }
 
 void decode_message(char* buffer){
     int package_number = package_number_to_integer(buffer);
-    // todo: ver si coincide con el ultimo paquete enviado
     char buffer_message[PACKAGE_MESSAGE_LENGTH];
     for(int i = 0; i <= PACKAGE_MESSAGE_LENGTH; ++i) {
         buffer_message[i] = buffer[i+PACKAGE_NUMBER_LENGTH];
@@ -154,10 +172,10 @@ void decode_message(char* buffer){
     int end = begin + PACKAGE_MESSAGE_LENGTH;
     int counter = 0;
     for(int i = begin; i < end; ++i) {
-        // server_string[i] = buffer_message[counter];
+        // Todo: Escribir en un archivo
+        server_string[i] = buffer_message[counter];
         ++counter;
     }
-    // agregar el mensaje al final de una variable global
 }
 
 int package_number_to_integer(char* buffer) {

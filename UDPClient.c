@@ -1,4 +1,5 @@
 // Client side implementation of UDP client-server model
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,6 +21,7 @@ int calculate_package_number(int message_len);
 void package_number_to_string(char *package, int current_package);
 char *read_client_file(char *filename);
 void create_message(char *buffer, char *message, int current_package, int begin);
+void create_setup_message(int package_number, char* filename, char* setup_message);
 
 // Driver code
 int main()
@@ -30,8 +32,6 @@ int main()
 int run_udp_client()
 {
     int sockfd = 0;
-    char buffer[MAXLINE];
-    char *hello = "Hello from client";
     struct sockaddr_in servaddr;
 
     // Creating socket file descriptor
@@ -49,10 +49,9 @@ int run_udp_client()
     servaddr.sin_addr.s_addr = INADDR_ANY;
 
     printf("Client start\n\n");
-
-    int n, len;
-
-    char file[20];
+    /*
+    socklen_t len;
+    
     char name[200];
     char password[200];
     char info[1024];
@@ -70,8 +69,8 @@ int run_udp_client()
     // printf("%s\n", info);
     sendto(sockfd, (const char *)info, strlen(info), MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
     printf("\nUser and password sent. Waiting for response\n");
-
-    n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
+    char buffer[MAXLINE];
+    int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
     buffer[n] = '\0';
     printf("Auten message: %s\n", buffer);
     if (strstr(buffer, "auten_sucess") != NULL)
@@ -79,7 +78,7 @@ int run_udp_client()
         return 1; // return error
     }
     printf("Client : %s\n", buffer);
-
+    */
     send_file_to_server(sockfd, &servaddr, "archivo3.txt");
 
     close(sockfd);
@@ -129,11 +128,17 @@ int send_file_to_server(int sockfd, struct sockaddr_in *servaddr, char *filename
         }
     }
     free(message);
+    return 0;
 }
 
-char *read_client_file(char *filename)
+char* read_client_file(char *filename)
 {
-    FILE *f = fopen(filename, "r");
+    FILE *f;
+     // Consulta si el archivo se abrio correctamente
+    if((f = fopen(filename, "r")) == NULL){
+        printf("ERROR: File couldnt be open");
+        exit(1);
+    }
     fseek(f, 0, SEEK_END);
     int numTotal = ftell(f);
     rewind(f);
@@ -189,7 +194,7 @@ void package_number_to_string(char *package, int current_package)
     package[PACKAGE_NUMBER_LENGTH] = '\0';
 }
 
-void create_setup_message(int package_number, char* filename, char* setup_message){
+void create_setup_message(int package_number, char* filename, char* setup_message) {
    char number_string[4]; 
    package_number_to_string(number_string, package_number);
 
