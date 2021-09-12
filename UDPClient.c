@@ -49,9 +49,9 @@ int run_udp_client()
     servaddr.sin_addr.s_addr = INADDR_ANY;
 
     printf("Client start\n\n");
-    /*
-    socklen_t len;
     
+    socklen_t len;
+    /*
     char name[200];
     char password[200];
     char info[1024];
@@ -77,8 +77,8 @@ int run_udp_client()
     {
         return 1; // return error
     }
-    printf("Client : %s\n", buffer);
-    */
+    printf("Client : %s\n", buffer);*/
+    
     send_file_to_server(sockfd, &servaddr, "archivo3.txt");
 
     close(sockfd);

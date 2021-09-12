@@ -34,7 +34,7 @@ int main() {
 }
 
 int run_udp_server() {
-    int sockfd;
+    int sockfd = 0;
     struct sockaddr_in servaddr;
     struct sockaddr_in cliaddr;
     // Creating socket file descriptor
@@ -60,11 +60,11 @@ int run_udp_server() {
     }
 
     printf("Server start\n\n");
-    /*  
+   
 
     int len = sizeof(cliaddr);  //len is value/resuslt
     
-    int auten_code = 69;
+   /* int auten_code = 69;
     char buffer[MAXLINE];
     printf("\nWaiting for the username and password\n");
     int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
@@ -79,9 +79,9 @@ int run_udp_server() {
         return 1;
     }
     char* auten_sucess = "auten_sucess";
-    sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+    sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);*/
 
-    */
+ 
     int error = receive_file_from_client(sockfd, &cliaddr);
     printf("\nServer end\n");
     return error;
@@ -99,18 +99,18 @@ int check_autentication(char* buffer){
     }
     char name[20];
     char password[20];
-    printf("Nombre: "); 
     for(int i = 0; i < separador[0]; ++i){
        name[i]=buffer[i];
-       printf("%c",buffer[i]); 
     }
-    printf("\n");
-    printf("Password: ");
+    name[separador[0]] = '\0';
+    int auxCounter = 0;
     for(int i = separador[0]+1; i < separador[1]; ++i){
-       password[i]=buffer[i];
-       printf("%c",buffer[i]); 
+       password[auxCounter]=buffer[i];
+       ++auxCounter;
     }
-    printf("\n");
+    password[auxCounter+1] = '\0';
+    printf("Name: %s\n", name); 
+    printf("Password: %s\n", password);
 
      // Consulta si el archivo se abrio correctamente
     if((data_base = fopen("data_base.txt", "r")) == NULL){
@@ -139,10 +139,13 @@ int check_autentication(char* buffer){
 int receive_file_from_client(int sockfd, struct sockaddr_in* cliaddr){
     //Recibe un mensaje con el numero de paquetes y nombre del archivo 
     socklen_t len = sizeof(cliaddr);  //len is value/resuslt
+    printf("Hola");
     printf("\nWaiting for the setup message\n");
+    printf("Hola2");
     char buffer[PACKAGE_LENGTH];
     int n = recvfrom(sockfd, (char *)buffer, PACKAGE_LENGTH, MSG_WAITALL, ( struct sockaddr *) &cliaddr, &len);
     buffer[n] = '\0';
+   
     printf("Message received: \"%s\"\n", buffer);
     //TODO: Confirma que le llego el mensaje inicial y sino lo pide de vuelta
     //Crea y abre un archivo con el nombre en el mensaje
