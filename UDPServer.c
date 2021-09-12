@@ -65,16 +65,18 @@ int run_udp_server() {
 
     printf("Auten code: %d\n", auten_code);
     if (auten_code != 0) {
-        char* auten_error = "auten_error";
+        char* auten_error = "auten_error";servaddr
         printf("Sending: [%s]\n",auten_error);
         sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
         return 1;
     }
     char* auten_sucess = "auten_sucess";
     sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
-    
+
+
+    int error = receive_file_from_client(sockfd, cliaddr);
     printf("\nServer end\n");
-    return 0;
+    return error;
 }
 
 int check_autentication(char* buffer){
@@ -126,9 +128,9 @@ int check_autentication(char* buffer){
     return 1;
 }
 
-int receive_file_from_client(int sockfd, struct sockaddr_in* servaddr){
+int receive_file_from_client(int sockfd, struct sockaddr_in* cliaddr){
     //Recibe un mensaje con el numero de paquetes y nombre del archivo 
-    
+
     //Confirma que le llego el mensaje inicial y sino lo pide de vuelta
     //Crea y abre un archivo con el nombre en el mensaje
     //Ciclo que reciba x cantidad de mensajes/paquetes
@@ -138,6 +140,7 @@ int receive_file_from_client(int sockfd, struct sockaddr_in* servaddr){
         //Sino 
             //Vuelve a pedir el mensaje desde el numero que no se recibio
     //Imprimir contenidos y cerrar archivo  
+    return 0;
 }
 
 void decode_message(char* buffer){
