@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 int create_threads(shared_data_t* shared_data) {
     assert(shared_data);
     int error = EXIT_SUCCESS;
-    // main thread
+    /// main thread
     pthread_t* main_tr = (pthread_t*)calloc(1, sizeof(pthread_t));
     private_data_t* private_data_main = (private_data_t*)calloc(1, sizeof(private_data_t));
     private_data_main->thread_number = -1; // -1 for main thread
@@ -89,25 +89,24 @@ int create_threads(shared_data_t* shared_data) {
         fprintf(stderr, "error: could not create main thread\n");
         return error = 20;
     }
-    // secondary threads
-    pthread_t* threads = (pthread_t*)calloc(shared_data->thread_count, sizeof(pthread_t));
-    private_data_t* private_data = (private_data_t*)calloc(shared_data->thread_count, sizeof(private_data_t));
-    if (threads && private_data) {
-        for (size_t current_thread = 0; current_thread < shared_data->thread_count; ++current_thread) {
-            private_data[current_thread].thread_number = current_thread;
-            private_data[current_thread].shared_data = shared_data;
-            if (pthread_create(&threads[current_thread], /*attr*/ NULL, sock_thread, &private_data[current_thread]) != EXIT_SUCCESS) {
-                fprintf(stderr,
-                "error: could not create thread %zu\n", current_thread);
-                return error = 21;
-            }
-        }
-        for (size_t i = 0; i < shared_data->thread_count; ++i) {
-            pthread_join(threads[i], /*value_ptr*/ NULL);
-        }
-        free(threads);
-        free(private_data);
-    }
+    /// secondary threads
+    // pthread_t* threads = (pthread_t*)calloc(shared_data->thread_count, sizeof(pthread_t));
+    // private_data_t* private_data = (private_data_t*)calloc(shared_data->thread_count, sizeof(private_data_t));
+    // if (threads && private_data) {
+    //     for (size_t current_thread = 0; current_thread < shared_data->thread_count; ++current_thread) {
+    //         private_data[current_thread].thread_number = current_thread;
+    //         private_data[current_thread].shared_data = shared_data;
+    //         if (pthread_create(&threads[current_thread], /*attr*/ NULL, sock_thread, &private_data[current_thread]) != EXIT_SUCCESS) {
+    //             fprintf(stderr, "error: could not create thread %zu\n", current_thread);
+    //             return error = 21;
+    //         }
+    //     }
+    //     for (size_t i = 0; i < shared_data->thread_count; ++i) {
+    //         pthread_join(threads[i], /*value_ptr*/ NULL);
+    //     }
+    //     free(threads);
+    //     free(private_data);
+    // }
     free(main_tr);
     free(private_data_main);
     return error;
@@ -119,20 +118,25 @@ void* main_thread(void* data) {
     printf("Hello from main thread %d\n\n", private_data->thread_number);
     int* sockfd = NULL;
     struct sockaddr_in* servaddr = calloc(1, sizeof(struct sockaddr_in));
-    start_up_server(sockfd, servaddr);
+    if (start_up_server(sockfd, servaddr) != 0) {
+        fprintf(stderr, "error: could not create server\n");
+        return NULL;
+    }
     printf("Server start\n\n");
     while (true) {
         // cualquier sock que entre
-        sockfd = calloc(1, sizeof(int));
+        printf("\n\nSi llego aqui, entonces vayan a dormir\n\n");
+        sleep(100000);
+        //sockfd = calloc(1, sizeof(int));
         // Todo: asignarle el sock que acaba de acaba de acabar de entrar
-        *sockfd = 69; // nice
+        //*sockfd = 69; // nice
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);        
         insert_to_sock_queue(shared_data->sock_queue, sockfd);
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
     }
     delete_server(sockfd, servaddr);
     printf("\nServer end\n");
-    return 0;
+    return NULL;
 }
 
 void insert_to_sock_queue(struct sock_queue_t* head, int* sockfd) {
@@ -246,6 +250,7 @@ void delete_server(int* sockfd, struct sockaddr_in* servaddr) {
 }
 
 int start_up_server(int* sockfd, struct sockaddr_in* servaddr) {
+    printf("No me he caido\n\n");
     // Creating socket file descriptor
     if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
@@ -264,9 +269,8 @@ int start_up_server(int* sockfd, struct sockaddr_in* servaddr) {
     if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
     {
         perror("bind failed");
-        exit(EXIT_FAILURE);
+        return 88;
     }
-    printf("No me he caido\n\n");
     return 0;
 }
 
