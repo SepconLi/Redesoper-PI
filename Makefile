@@ -1,5 +1,5 @@
 server: UDPServer.c
-	rm -rf ./server && rm -rf ./client && cc -g -Wall -Wextra UDPServer.c -o server -lm && cc -g -Wall -Wextra UDPClient.c -o client -lm
+	rm -rf ./server && rm -rf ./client && cc -g -Wall -Wextra UDPServer.c -o server -lm -pthread && cc -g -Wall -Wextra UDPClient.c -o client -lm
 
 client: UDPClient.c
 	cc -g -Wall -Wextra UDPClient.c -o client -lm
