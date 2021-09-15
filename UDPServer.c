@@ -20,8 +20,8 @@ typedef struct {
 } shared_data_t;
 
 /// the private data of each thread
-typedef struct  {
-  int thread_number;
+typedef struct {
+  size_t thread_number;
   shared_data_t* shared_data;
 } private_data_t;
 
@@ -46,6 +46,7 @@ int main(int argc, char* argv[])
 {
     int error = EXIT_SUCCESS;
     shared_data_t* shared_data = (shared_data_t*)calloc(1, sizeof(shared_data_t));
+
     if (shared_data) {
         shared_data->thread_count = sysconf(_SC_NPROCESSORS_ONLN);
         shared_data->sock_queue = NULL;
@@ -80,12 +81,13 @@ int create_threads(shared_data_t* shared_data) {
     assert(shared_data);
     int error = EXIT_SUCCESS;
     /// main thread
-    pthread_t* main_tr = (pthread_t*)calloc(1, sizeof(pthread_t));
+    pthread_t main_tr = (pthread_t*)calloc(1, sizeof(pthread_t));
     private_data_t* private_data_main = (private_data_t*)calloc(1, sizeof(private_data_t));
     private_data_main->thread_number = -1; // -1 for main thread
+    printf("%ld\n",private_data_main->thread_number);
     private_data_main->shared_data = shared_data;
     // Nota: &main_tr deberia ser el modo de ponerlo, pero el compilador no se queja asi so XD
-    if (pthread_create(main_tr, /*attr*/ NULL, main_thread, &private_data_main) != EXIT_SUCCESS) {
+    if (pthread_create(&main_tr, /*attr*/ NULL, main_thread, &private_data_main) != EXIT_SUCCESS) {
         fprintf(stderr, "error: could not create main thread\n");
         return error = 20;
     }
@@ -107,15 +109,18 @@ int create_threads(shared_data_t* shared_data) {
     //     free(threads);
     //     free(private_data);
     // }
-    free(main_tr);
+    printf("%ld\n",private_data_main->thread_number);
+    pthread_join(main_tr, /*value_ptr*/ NULL);
+    free(&main_tr);
     free(private_data_main);
     return error;
 }
 
 void* main_thread(void* data) {
-    const private_data_t* private_data = (private_data_t*)data;
+    private_data_t* private_data = (private_data_t*)data;
     shared_data_t* shared_data = private_data->shared_data;
-    printf("Hello from main thread %d\n\n", private_data->thread_number);
+    printf("Hello from main thread %ld\n\n", private_data->thread_number);
+    printf("Threads: %ld\n\n", shared_data->thread_count);
     int* sockfd = NULL;
     struct sockaddr_in* servaddr = calloc(1, sizeof(struct sockaddr_in));
     if (start_up_server(sockfd, servaddr) != 0) {
@@ -123,6 +128,7 @@ void* main_thread(void* data) {
         return NULL;
     }
     printf("Server start\n\n");
+    printf("\n\nSi llego aqui, entonces vayan a dormir\n\n");
     while (true) {
         // cualquier sock que entre
         printf("\n\nSi llego aqui, entonces vayan a dormir\n\n");
@@ -156,9 +162,9 @@ void insert_to_sock_queue(struct sock_queue_t* head, int* sockfd) {
 }
 
 void* sock_thread(void* data) {
-    const private_data_t* private_data = (private_data_t*)data;
+    private_data_t* private_data = (private_data_t*)data;
     shared_data_t* shared_data = private_data->shared_data;
-    printf("Hello from sock thread %d\n\n", private_data->thread_number);
+    printf("Hello from sock thread %ld\n\n", private_data->thread_number);
     int* sockfd = NULL;
     struct sock_queue_t* tmp = NULL;
     struct sockaddr_in* cliaddr = calloc(1, sizeof(struct sockaddr_in));
@@ -257,7 +263,7 @@ int start_up_server(int* sockfd, struct sockaddr_in* servaddr) {
         perror("socket creation failed");
         return 4;
     }
-
+    printf("No me he caido\n\n");
     memset(servaddr, 0, sizeof(*servaddr));
 
     // Filling server information
@@ -266,6 +272,7 @@ int start_up_server(int* sockfd, struct sockaddr_in* servaddr) {
     servaddr->sin_port = htons(PORT);
 
     // Bind the socket with the server address
+    printf("No me he caido\n\n");
     if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
     {
         perror("bind failed");
