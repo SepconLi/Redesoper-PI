@@ -1,6 +1,7 @@
 // Client side implementation of UDP client-server model
 #include <assert.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -22,6 +23,7 @@ void package_number_to_string(char *package, int current_package);
 char *read_client_file(char *filename);
 void create_message(char *buffer, char *message, int current_package, int begin);
 void create_setup_message(int package_number, char *filename, char *setup_message);
+int package_number_to_integer(char *buffer);
 
 // Driver code
 int main()
@@ -51,14 +53,10 @@ int run_udp_client()
     printf("Client start\n\n");
 
     socklen_t len;
-
-    char name[200];
-    char password[200];
-    char info[1024];
-
     // Identificacion del usuario
     // printf("Ingrese el nombre del archivo \n");
     // scanf("%s", file);
+    /*
     printf("Ingrese su usuario \n");
     scanf("%s", name);
     printf("\nIngrese la contrasena \n");
@@ -78,7 +76,7 @@ int run_udp_client()
         return 1; // return error
     }
     printf("Client : %s\n", buffer);
-
+    */
     //TODO: Pedir filename por terminal
 
     char *filename = "archivo3.txt";
@@ -88,41 +86,57 @@ int run_udp_client()
     int package_number = calculate_package_number(message_len);
     char setup_message[PACKAGE_LENGTH];
     create_setup_message(package_number, filename, setup_message);
-    sendto(sockfd, (const char *)setup_message, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
+    char confirmation_message[8] = "12345678";
+    bool confirmation = false;
+    while (!confirmation) {
+        sendto(sockfd, (const char *)setup_message, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
+        int n = recvfrom(sockfd, (char *)confirmation_message, strlen(confirmation_message), MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
+        confirmation_message[n] = '\0';
+        if (strstr(confirmation_message, "Received") != NULL) {
+            confirmation = true;
+        }
+    }
     //TODO: hacer receive
     int begin = 0;
     int current_package = 0;
     char buffer2[PACKAGE_LENGTH];
     printf("Package total: %d\n", package_number); // To do: Revisar la informacion que se va a mandar en el primer mensaje
-    while (current_package < package_number)
+    char last_received[PACKAGE_NUMBER_LENGTH];
+    while (current_package < package_number)    // 0003 mensaje de confirmacion traeria el numero del ultimo recibido
     {
         create_message(buffer2, message, current_package, begin);
-        ++current_package;
-        begin += PACKAGE_MESSAGE_LENGTH;
-        if (current_package == package_number)
-        {
+        if (current_package == package_number){
             buffer2[PACKAGE_NUMBER_LENGTH + (message_len % PACKAGE_MESSAGE_LENGTH)] = '\0'; // 16, 16, 14 = 46 % 16 = 14
-            printf("Package: \"%s\"\n", buffer);
-            //Aqui estan los sends
-            sendto(sockfd, (const char *)buffer2, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
-            //TODO: hacer receive
-            printf("%9d chars sent\n", message_len);
-            printf("\nFinal message sent\n\n");
         }
-        else
-        {
-            printf("Package: \"%s\"\n", buffer2);
-            //Aqui estan los sends
-            sendto(sockfd, (const char *)buffer2, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
-            //TODO: hacer receive
-        }
+        printf("Package: \"%s\"\n", buffer2);
+        sendto(sockfd, (const char *)buffer2, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
+        int n = recvfrom(sockfd, (char *)last_received, PACKAGE_NUMBER_LENGTH, MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
+        last_received[n] = '\0';
+        current_package = package_number_to_integer(last_received) + 1; // si recibio el mensaje 2, entonces mandara el 3 siguiente
+        begin = current_package * PACKAGE_MESSAGE_LENGTH;   // 0 * 16 = 0, 1 * 16 = 16, 2 * 16 = 32, etc
     }
+    printf("%9d chars sent\n", message_len);
+    printf("\nFinal message sent\n\n");
     free(message);
     //send_file_to_server(sockfd, &servaddr, "archivo3.txt");
 
     close(sockfd);
     printf("\nClient end\n");
     return 0;
+}
+
+int package_number_to_integer(char *buffer)
+{
+    // Numero de ejemplo 0362
+    int package_number = 0;
+    int multiply = 1; // 1, 10, 100, 1000
+    for (int i = PACKAGE_NUMBER_LENGTH - 1; i >= 0; --i)
+    {
+        package_number += (buffer[i] - '0') * multiply; // 0 + 2, 2 + 60, 62 + 300, 362 + 0 = 362
+        multiply *= 10;
+    }
+    // printf("\t{Package_number: %d}\n", package_number);
+    return package_number;
 }
 
 char *read_client_file(char *filename)

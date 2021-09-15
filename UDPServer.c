@@ -21,6 +21,7 @@ int check_autentication();
 void decode_message(char *buffer, char *output_filename);
 int package_number_to_integer(char *buffer);
 int receive_file_from_client(int sockfd, struct sockaddr_in *cliaddr);
+void package_number_to_string(char *package, int current_package);
 void write_in_file(char *output_filename, char *text);
 
 // VARIABLE GLOBAL. MR. JEISSON GET DOWN!
@@ -66,7 +67,7 @@ int run_udp_server()
     printf("Server start\n\n");
 
     socklen_t len = sizeof(cliaddr); //len is value/resuslt
-
+    /*
     int auten_code = 69;
     char buffer[MAXLINE];
     printf("\nWaiting for the username and password\n");
@@ -84,35 +85,60 @@ int run_udp_server()
     }
     char *auten_sucess = "auten_sucess";
     sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-
+    */
     char output_filename[20];
     printf("Write the filename: ");
     scanf("%s", output_filename);
     printf("\nWaiting for the setup message\n");
-    char buffer2[PACKAGE_LENGTH];
-    int n2 = recvfrom(sockfd, (char *)buffer2, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-    buffer[n2] = '\0';
-    printf("Message received: \"%s\"\n", buffer2);
-    int package_number = package_number_to_integer(buffer2);
-    //TODO: Confirma que le llego el mensaje inicial y sino lo pide de vuelta
-    //Crea y abre un archivo con el nombre en el mensaje
-    //Ciclo que reciba x cantidad de mensajes/paquetes
+    char package_message[PACKAGE_LENGTH];
+    int n2 = recvfrom(sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
+    package_message[n2] = '\0';
+    printf("Message received: \"%s\"\n", package_message);
+    int package_number = package_number_to_integer(package_message);
+    char confirmation[8] = "Received";
+    sendto(sockfd, (const char *)confirmation, strlen(confirmation), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+    char send_next[4] = "0000";
+    int next_message = 0;
+    int last_received = 0;
     for (int i = 0; i < package_number; ++i)
     {
-        //Recibe el mensaje en una var
-        int n3 = recvfrom(sockfd, (char *)buffer2, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-        buffer[n3] = '\0';
-
-        decode_message(buffer2, output_filename);
-        //Si el numero de paquete es igual al anterior + 1
-        //Copia el mensaje al final dl archivo
-        //Sino
-        //Vuelve a pedir el mensaje desde el numero que no se recibio
+        int n3 = recvfrom(sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
+        package_message[n3] = '\0';
+        last_received = package_number_to_integer(package_message);
+        if (last_received == next_message) {
+            decode_message(package_message, output_filename);
+            ++next_message;
+            package_number_to_string(send_next, next_message);
+        } else {
+            --i;
+        }
+        printf("next message %d\n", next_message);
+        sendto(sockfd, (const char *)send_next, PACKAGE_NUMBER_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
     }
     //Imprimir contenidos y cerrar archivo
     //int error = receive_file_from_client(sockfd, &cliaddr);
     printf("\nServer end\n");
     return 0;
+}
+
+void package_number_to_string(char *package, int current_package)
+{
+    // Numero de ejemplo 362
+    int digits = 0;
+    int position = PACKAGE_NUMBER_LENGTH - 1;
+    while (current_package != 0)
+    {
+        package[position] = (current_package % 10) + '0'; // 2, 6, 3
+        current_package = current_package / 10;
+        --position;
+        ++digits;
+    }
+    int filler = PACKAGE_NUMBER_LENGTH - digits; // (362) 4 - 3 = 1
+    for (int i = 0; i < filler; ++i)
+    { // 362 = 0362
+        package[i] = '0';
+    }
+    package[PACKAGE_NUMBER_LENGTH] = '\0';
 }
 
 int check_autentication(char *buffer)
@@ -174,22 +200,13 @@ int check_autentication(char *buffer)
 
 void decode_message(char *buffer, char *output_filename)
 {
-    //int package_number = package_number_to_integer(buffer);
     char buffer_message[PACKAGE_MESSAGE_LENGTH];
     for (int i = 0; i <= PACKAGE_MESSAGE_LENGTH; ++i)
     {
         buffer_message[i] = buffer[i + PACKAGE_NUMBER_LENGTH];
     }
     buffer_message[PACKAGE_MESSAGE_LENGTH] = '\0';
-    //int begin = package_number * PACKAGE_MESSAGE_LENGTH;
-    //int end = begin + PACKAGE_MESSAGE_LENGTH;
     write_in_file(output_filename, buffer_message);
-    //int counter = 0;
-    //for(int i = begin; i < end; ++i) {
-    // Todo: Escribir en un archivo
-    // write_in_file(output_filename, buffer_message[counter]);
-    // ++counter;
-    //}
 }
 
 int package_number_to_integer(char *buffer)
