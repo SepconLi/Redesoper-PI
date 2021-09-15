@@ -50,7 +50,7 @@ int run_udp_server()
     printf("Server start\n\n");
 
     socklen_t len = sizeof(cliaddr); //len is value/resuslt
-    /*
+    
     int auten_code = 69;
     char buffer[MAXLINE];
     printf("\nWaiting for the username and password\n");
@@ -62,13 +62,12 @@ int run_udp_server()
     if (auten_code != 0)
     {
         char *auten_error = "auten_error";
-        printf("Sending: [%s]\n", auten_error);
         sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
         return 1;
     }
     char *auten_sucess = "auten_sucess";
     sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-    */
+    
     char output_filename[20];
     printf("Write the filename: ");
     scanf("%s", output_filename);
