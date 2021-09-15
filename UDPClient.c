@@ -6,7 +6,7 @@ void start_up_client(int* sockfd, struct sockaddr_in* servaddr);
 void send_file_to_server(int* sockfd, struct sockaddr_in* servaddr);
 int send_autentication_data(int* sockfd, struct sockaddr_in* servaddr );
 int run_udp_client();
-void delete_server(int* sockfd, struct sockaddr_in* servaddr );
+void delete_client(int* sockfd, struct sockaddr_in* servaddr );
 int calculate_package_number(int message_len);
 char* read_client_file(char *filename);
 void create_message(char *buffer, char *message, int current_package, int begin);
@@ -24,14 +24,15 @@ int run_udp_client()
     struct sockaddr_in* servaddr = calloc(1, sizeof(struct sockaddr_in) );
     start_up_client(sockfd, servaddr);
     printf("Client start\n\n");
-
+    /*
     if (send_autentication_data(sockfd, servaddr)) {
         perror("Failed autentication");
         return 1;
     }
+    */
     send_file_to_server(sockfd, servaddr);
     
-    delete_server(sockfd, servaddr);
+    delete_client(sockfd, servaddr);
     printf("\nClient end\n");
     return 0;
 }
@@ -65,7 +66,7 @@ int send_autentication_data(int* sockfd, struct sockaddr_in* servaddr) {
     return 0;
 }
 
-void delete_server(int* sockfd, struct sockaddr_in* servaddr ) {
+void delete_client(int* sockfd, struct sockaddr_in* servaddr ) {
     close(*sockfd);
     free(sockfd);
     free(servaddr);

@@ -3,9 +3,13 @@
 #include "common.h"
 
 int run_udp_server();
+int receive_autentication_data(int* sockfd, struct sockaddr_in* cliaddr);
+int receive_file_from_client(int* sockfd, struct sockaddr_in* cliaddr);
 int check_autentication();
 void decode_message(char *buffer, char *output_filename);
 void write_in_file(char *output_filename, char *text);
+int start_up_server(int* sockfd, struct sockaddr_in* servaddr, struct sockaddr_in* cliaddr);
+void delete_server(int* sockfd, struct sockaddr_in* servaddr, struct sockaddr_in* cliaddr);
 
 // VARIABLE GLOBAL. MR. JEISSON GET DOWN!
 //char* server_string;
@@ -13,72 +17,46 @@ void write_in_file(char *output_filename, char *text);
 // Driver code
 int main()
 {
-    //server_string = (char *) calloc(sizeof(char), 486);
-    int error_status = run_udp_server();
-    //free(server_string);
-    return error_status;
+    return run_udp_server();
 }
 
 int run_udp_server()
 {
-    int sockfd = 0;
-    struct sockaddr_in servaddr;
-    struct sockaddr_in cliaddr;
-    // Creating socket file descriptor
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        perror("socket creation failed");
-        return 4;
-    }
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    memset(&cliaddr, 0, sizeof(cliaddr));
-
-    // Filling server information
-    servaddr.sin_family = AF_INET; // IPv4
-    servaddr.sin_addr.s_addr = INADDR_ANY;
-    servaddr.sin_port = htons(PORT);
-
-    // Bind the socket with the server address
-    if (bind(sockfd, (const struct sockaddr *)&servaddr,
-             sizeof(servaddr)) < 0)
-    {
-        perror("bind failed");
-        exit(EXIT_FAILURE);
-    }
+    int* sockfd = calloc(1, sizeof(int));;
+    struct sockaddr_in* servaddr = calloc(1, sizeof(struct sockaddr_in));;
+    struct sockaddr_in* cliaddr = calloc(1, sizeof(struct sockaddr_in));;
+    start_up_server(sockfd, servaddr, cliaddr);
 
     printf("Server start\n\n");
-
-    socklen_t len = sizeof(cliaddr); //len is value/resuslt
-    
-    int auten_code = 69;
-    char buffer[MAXLINE];
-    printf("\nWaiting for the username and password\n");
-    int n = recvfrom(sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-    buffer[n] = '\0';
-    auten_code = check_autentication(buffer);
-
-    printf("Auten code: %d\n", auten_code);
-    if (auten_code != 0)
-    {
-        char *auten_error = "auten_error";
-        sendto(sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-        return 1;
+    /*
+    if(receive_autentication_data(sockfd, cliaddr)) {
+        perror("Autentication failed\n");
+        return 11;
     }
-    char *auten_sucess = "auten_sucess";
-    sendto(sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-    
+    */
+    if(receive_file_from_client(sockfd, cliaddr)) {
+        perror("Failed to receive the file from the client\n");
+        return 12;
+    }
+    delete_server(sockfd, servaddr, cliaddr);
+    printf("\nServer end\n");
+    return 0;
+}
+
+int receive_file_from_client(int* sockfd, struct sockaddr_in* cliaddr) {
+    socklen_t len = sizeof(*cliaddr); //len is value/resuslt
+    printf("\nAutentication process ended\n\n"); // NO TOCAR ESTA LINEA DE CODIGO BAJO NINGUNA CIRCUNSTANCIA
     char output_filename[20];
     printf("Write the filename: ");
     scanf("%s", output_filename);
     printf("\nWaiting for the setup message\n");
     char package_message[PACKAGE_LENGTH];
-    int n2 = recvfrom(sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
-    package_message[n2] = '\0';
+    int n = recvfrom(*sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)cliaddr, &len);
+    package_message[n] = '\0';
     printf("Message received: \"%s\"\n", package_message);
     int package_number = package_number_to_integer(package_message);
     char confirmation[8] = "Received";
-    sendto(sockfd, (const char *)confirmation, strlen(confirmation), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+    sendto(*sockfd, (const char *)confirmation, strlen(confirmation), MSG_CONFIRM, (const struct sockaddr *)cliaddr, len);
     char send_next[4] = "0000"; //  0000, 0001, 0002
     send_next[4] = '\0';
     int next_message = 0;       //  0,  1,  2, 3
@@ -86,7 +64,7 @@ int run_udp_server()
     for (int i = 0; i < package_number; ++i)
     { 
         printf("next message %d\t last_received %d\t send_next %s\n", next_message, last_received, send_next);
-        int n3 = recvfrom(sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
+        int n3 = recvfrom(*sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)cliaddr, &len);
         package_message[n3] = '\0';
         last_received = package_number_to_integer(package_message);
         if (last_received == next_message) {
@@ -97,11 +75,58 @@ int run_udp_server()
             --i;
         }
         printf("next message %d\t last_received %d\t send_next %s\n\n", next_message, last_received, send_next);
-        sendto(sockfd, (const char *)send_next, PACKAGE_NUMBER_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
+        sendto(*sockfd, (const char *)send_next, PACKAGE_NUMBER_LENGTH, MSG_CONFIRM, (const struct sockaddr *)cliaddr, len);
     }
-    //Imprimir contenidos y cerrar archivo
-    //int error = receive_file_from_client(sockfd, &cliaddr);
-    printf("\nServer end\n");
+    return 0;
+}
+
+int receive_autentication_data(int* sockfd, struct sockaddr_in* cliaddr) {
+    socklen_t len = sizeof(*cliaddr); //len is value/results
+    int auten_code = 69;
+    char buffer[MAXLINE];
+    printf("\nWaiting for the username and password\n");
+    int n = recvfrom(*sockfd, (char *)buffer, MAXLINE, MSG_WAITALL, (struct sockaddr *)cliaddr, &len);
+    buffer[n] = '\0';
+    auten_code = check_autentication(buffer);
+    if (auten_code != 0)
+    {
+        char *auten_error = "auten_error";
+        sendto(*sockfd, (const char *)auten_error, strlen(auten_error), MSG_CONFIRM, (const struct sockaddr *)cliaddr, len);
+        return 11;
+    }
+    char *auten_sucess = "auten_sucess";
+    sendto(*sockfd, (const char *)auten_sucess, strlen(auten_sucess), MSG_CONFIRM, (const struct sockaddr *)cliaddr, len);
+    return 0;
+}
+
+void delete_server(int* sockfd, struct sockaddr_in* servaddr, struct sockaddr_in* cliaddr) {
+    free(sockfd);
+    free(servaddr);
+    free(cliaddr);
+}
+
+int start_up_server(int* sockfd, struct sockaddr_in* servaddr, struct sockaddr_in* cliaddr) {
+    // Creating socket file descriptor
+    if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        perror("socket creation failed");
+        return 4;
+    }
+
+    memset(servaddr, 0, sizeof(*servaddr));
+    memset(cliaddr, 0, sizeof(*cliaddr));
+
+    // Filling server information
+    servaddr->sin_family = AF_INET; // IPv4
+    servaddr->sin_addr.s_addr = INADDR_ANY;
+    servaddr->sin_port = htons(PORT);
+
+    // Bind the socket with the server address
+    if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
+    {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
     return 0;
 }
 
