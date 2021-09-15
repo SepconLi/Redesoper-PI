@@ -7,14 +7,14 @@
 /// the socket queue
 struct sock_queue_t {
   int* sockfd;
-  sock_queue_t* next;
+  struct sock_queue_t* next;
 };
 
 /// the shared data between all threads
 typedef struct {
   int thread_count;
   // int position;
-  sock_queue_t* sock_queue;
+  struct sock_queue_t* sock_queue;
   // This mutex is used to guard the sock_queue
   pthread_mutex_t can_acess_sock_queue; 
 } shared_data_t;
@@ -36,7 +36,7 @@ void delete_server(int* sockfd, struct sockaddr_in* servaddr);
 int create_threads(shared_data_t* shared_data);
 void* main_thread(void* data);
 void* sock_thread(void* data);
-void insert_to_sock_queue(sock_queue_t* head, int* sockfd);
+void insert_to_sock_queue(struct sock_queue_t* head, int* sockfd);
 
 // VARIABLE GLOBAL. MR. JEISSON GET DOWN!
 //char* server_string;
@@ -84,7 +84,8 @@ int create_threads(shared_data_t* shared_data) {
     private_data_t* private_data_main = (private_data_t*)calloc(1, sizeof(private_data_t));
     private_data_main->thread_number = -1; // -1 for main thread
     private_data_main->shared_data = shared_data;
-    if (pthread_create(&main, /*attr*/ NULL, main_thread, &private_data[current_thread]) != EXIT_SUCCESS) {
+    int current_thread = 0;
+    if (pthread_create(&main, /*attr*/ NULL, main_thread, &private_data_main[current_thread]) != EXIT_SUCCESS) {
         fprintf(stderr, "error: could not create main thread\n");
         return error = 20;
     }
