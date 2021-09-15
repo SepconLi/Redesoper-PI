@@ -112,7 +112,7 @@ int run_udp_client()
         sendto(sockfd, (const char *)buffer2, PACKAGE_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&servaddr, sizeof(servaddr));
         int n = recvfrom(sockfd, (char *)last_received, PACKAGE_NUMBER_LENGTH, MSG_WAITALL, (struct sockaddr *)&servaddr, &len);
         last_received[n] = '\0';
-        current_package = package_number_to_integer(last_received) + 1; // si recibio el mensaje 2, entonces mandara el 3 siguiente
+        current_package = package_number_to_integer(last_received); // si recibio el mensaje 2, entonces mandara el 3 siguiente
         begin = current_package * PACKAGE_MESSAGE_LENGTH;   // 0 * 16 = 0, 1 * 16 = 16, 2 * 16 = 32, etc
     }
     printf("%9d chars sent\n", message_len);

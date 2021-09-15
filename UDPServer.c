@@ -97,11 +97,13 @@ int run_udp_server()
     int package_number = package_number_to_integer(package_message);
     char confirmation[8] = "Received";
     sendto(sockfd, (const char *)confirmation, strlen(confirmation), MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
-    char send_next[4] = "0000";
-    int next_message = 0;
-    int last_received = 0;
+    char send_next[4] = "0000"; //  0000, 0001, 0002
+    send_next[4] = '\0';
+    int next_message = 0;       //  0,  1,  2, 3
+    int last_received = 0;      //  0,  0,  1, 2
     for (int i = 0; i < package_number; ++i)
-    {
+    { 
+        printf("next message %d\t last_received %d\t send_next %s\n", next_message, last_received, send_next);
         int n3 = recvfrom(sockfd, (char *)package_message, PACKAGE_LENGTH, MSG_WAITALL, (struct sockaddr *)&cliaddr, &len);
         package_message[n3] = '\0';
         last_received = package_number_to_integer(package_message);
@@ -112,7 +114,7 @@ int run_udp_server()
         } else {
             --i;
         }
-        printf("next message %d\n", next_message);
+        printf("next message %d\t last_received %d\t send_next %s\n\n", next_message, last_received, send_next);
         sendto(sockfd, (const char *)send_next, PACKAGE_NUMBER_LENGTH, MSG_CONFIRM, (const struct sockaddr *)&cliaddr, len);
     }
     //Imprimir contenidos y cerrar archivo
