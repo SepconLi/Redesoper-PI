@@ -33,7 +33,7 @@ int receive_file_from_client(int *sockfd, struct sockaddr_in *cliaddr);
 int check_autentication();
 void decode_message(char *buffer, char *output_filename);
 void write_in_file(char *output_filename, char *text);
-int start_up_server(struct sockaddr_in *servaddr);
+int start_up_server(int* sockfd, struct sockaddr_in *servaddr);
 void delete_server(int *sockfd, struct sockaddr_in *servaddr);
 /// Consumer threads
 int create_threads(shared_data_t *shared_data);
@@ -136,33 +136,29 @@ void *main_thread(void *data)
     printf("Hello from main thread %ld\n", private_data->thread_number);
     int *sockfd = NULL;
     struct sockaddr_in *servaddr = calloc(1, sizeof(struct sockaddr_in));
-    if (start_up_server(servaddr) != 0)
+    if (start_up_server(sockfd, servaddr) != 0)
     {
         fprintf(stderr, "error: could not create server\n");
         return NULL;
     }
     printf("Server start\n\n");
+    if (listen(*sockfd, 10) != 0) {
+        fprintf(stderr, "error: could not listen client\n");
+
+    }
+    int* client_socket = 0;
+    socklen_t addr_len = 0;
     while (true)
     {
-        sockfd = calloc(1, sizeof(int));
-        // Creating socket file descriptor
-        /*
-        if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-        {
-            perror("socket creation failed");
-        }
-        // Bind the socket with the server address
-        if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
-        {
-            perror("bind failed");
-        }
-        */
+        client_socket = calloc(1, sizeof(int));
+        *client_socket = accept(*sockfd, (struct sockaddr *)servaddr, &addr_len);
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);
         //shared_data->sock_queue = 1;
         shared_data->sock_queue = insert_to_sock_queue(shared_data->sock_queue, sockfd);
         assert(shared_data->sock_queue);
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
-        //sleep(1);
+        sleep(1);
+        client_socket = 0;
     }
     delete_server(sockfd, servaddr);
     printf("\nServer end\n");
@@ -196,7 +192,7 @@ void *sock_thread(void *data)
 {
     private_data_t *private_data = (private_data_t *)data;
     shared_data_t *shared_data = private_data->shared_data;
-    printf("Hello from sock thread %ld\n", private_data->thread_number);
+    //printf("Hello from sock thread %ld\n", private_data->thread_number);
     int *sockfd = NULL;
     struct sock_queue_t *tmp = NULL;
     struct sockaddr_in *cliaddr = calloc(1, sizeof(struct sockaddr_in));
@@ -305,13 +301,30 @@ void delete_server(int *sockfd, struct sockaddr_in *servaddr)
     free(servaddr);
 }
 
-int start_up_server(struct sockaddr_in *servaddr)
+int start_up_server(int *sockfd, struct sockaddr_in *servaddr)
 {
+    printf("Starting");
+    if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+    {
+        perror("socket creation failed");
+        return 4;
+    }
+    printf(" server\n");
+
     memset(servaddr, 0, sizeof(*servaddr));
+
     // Filling server information
     servaddr->sin_family = AF_INET; // IPv4
     servaddr->sin_addr.s_addr = INADDR_ANY;
     servaddr->sin_port = htons(PORT);
+
+    // Bind the socket with the server address
+    if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
+    {
+        perror("bind failed");
+        return 5;
+    }
+    printf(" successfully\n");
     return 0;
 }
 
