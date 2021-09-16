@@ -5,12 +5,11 @@
 #include <fcntl.h>
 #include <stddef.h>
 
-int write(int fd, const void *buf, int bytes) {
-    int fd = open(buf,bytes);
+int write(int fd, void *buf, int bytes) {
     if(fd == -1) {
        return 1;
     } else {
-        mmap(NULL,bytes,PROT_WRITE,MAP_SHARED,fd,0);
+        mmap(buf,bytes,PROT_WRITE,MAP_SHARED,fd,0);
     }
     return 0;
 }

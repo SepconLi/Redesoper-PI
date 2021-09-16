@@ -5,13 +5,14 @@
 #include <fcntl.h>
 #include <stddef.h>
 
-int read(int fd, const void *buf, int bytes) {
+void* read(int fd, const char *buf, int bytes) {
+    void* direction;
     fd = open(buf,bytes);
     if(fd == -1) {
-       return 1;
+       return NULL;
     } else {
-        mmap(NULL,bytes,PROT_READ,MAP_SHARED,fd,0);
+        direction = mmap(NULL,bytes,PROT_READ,MAP_SHARED,fd,0);
     }
-    return 0;
+    return direction;
 }
 #endif // READ_H
