@@ -33,7 +33,7 @@ int receive_file_from_client(int *sockfd, struct sockaddr_in *cliaddr);
 int check_autentication();
 void decode_message(char *buffer, char *output_filename);
 void write_in_file(char *output_filename, char *text);
-int start_up_server(int *sockfd, struct sockaddr_in *servaddr);
+int start_up_server(struct sockaddr_in *servaddr);
 void delete_server(int *sockfd, struct sockaddr_in *servaddr);
 /// Consumer threads
 int create_threads(shared_data_t *shared_data);
@@ -93,19 +93,6 @@ int create_threads(shared_data_t *shared_data)
 {
     assert(shared_data);
     int error = EXIT_SUCCESS;
-    /// main thread
-    pthread_t main_tr = (pthread_t *)calloc(1, sizeof(pthread_t));
-    //private_data_t *private_data_main = (private_data_t *)calloc(1, sizeof(private_data_t));
-    //private_data_main->thread_number = -1; // -1 for main thread
-    //printf("%ld\n",private_data_main->thread_number);
-    //private_data_main->shared_data = shared_data;
-    // Nota: &main_tr deberia ser el modo de ponerlo, pero el compilador no se queja asi so XD
-    //printf("Prueba1`: %ld\n\n", private_data_main->thread_number);
-    // if (pthread_create(&main_tr, /*attr*/ NULL, main_thread, &private_data_main) != EXIT_SUCCESS)
-    // {
-    //     fprintf(stderr, "error: could not create main thread\n");
-    //     return error = 20;
-    // }
     /// secondary threads
     pthread_t *threads = (pthread_t *)calloc(shared_data->thread_count, sizeof(pthread_t));
     private_data_t *private_data = (private_data_t *)calloc(shared_data->thread_count, sizeof(private_data_t));
@@ -117,7 +104,7 @@ int create_threads(shared_data_t *shared_data)
             private_data[current_thread].shared_data = shared_data;
             if (current_thread == 0)
             {
-                if (pthread_create(&main_tr, /*attr*/ NULL, main_thread, &private_data[current_thread]) != EXIT_SUCCESS)
+                if (pthread_create(&threads[current_thread], /*attr*/ NULL, main_thread, &private_data[current_thread]) != EXIT_SUCCESS)
                 {
                     fprintf(stderr, "error: could not create main thread\n");
                     return error = 20;
@@ -139,45 +126,42 @@ int create_threads(shared_data_t *shared_data)
         free(threads);
         free(private_data);
     }
-    //printf("%ld\n", private_data_main->thread_number);
-    pthread_join(main_tr, /*value_ptr*/ NULL);
-    free(&main_tr);
-    //free(private_data_main);
     return error;
 }
 
 void *main_thread(void *data)
 {
     private_data_t *private_data = (private_data_t *)data;
-    printf("Prueba1");
     shared_data_t *shared_data = private_data->shared_data;
-    printf("Prueba1");
-    const size_t threadID = private_data->thread_number;
-    printf("Prueba: %ld\n\n", threadID);
-    printf("Prueba1");
     printf("Hello from main thread %ld\n\n", private_data->thread_number);
-    printf("Prueba2");
-    printf("Threads: %ld\n\n", shared_data->thread_count);
     int *sockfd = NULL;
     struct sockaddr_in *servaddr = calloc(1, sizeof(struct sockaddr_in));
-    if (start_up_server(sockfd, servaddr) != 0)
+    if (start_up_server(servaddr) != 0)
     {
         fprintf(stderr, "error: could not create server\n");
         return NULL;
     }
     printf("Server start\n\n");
-    printf("\n\nSi llego aqui, entonces vayan a dormir\n\n");
     while (true)
     {
-        // cualquier sock que entre
-        printf("\n\nSi llego aqui, entonces vayan a dormir\n\n");
-        sleep(100000);
-        //sockfd = calloc(1, sizeof(int));
-        // Todo: asignarle el sock que acaba de acaba de acabar de entrar
-        //*sockfd = 69; // nice
+        sockfd = 40; //calloc(1, sizeof(int));
+        // Creating socket file descriptor
+        /*
+        if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
+        {
+            perror("socket creation failed");
+        }
+        // Bind the socket with the server address
+        if (bind(*sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
+        {
+            perror("bind failed");
+        }
+        */
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);
         insert_to_sock_queue(shared_data->sock_queue, sockfd);
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
+        printf("Main thread sleeping\n");
+        sleep(1);
     }
     delete_server(sockfd, servaddr);
     printf("\nServer end\n");
@@ -186,9 +170,10 @@ void *main_thread(void *data)
 
 void insert_to_sock_queue(struct sock_queue_t *head, int *sockfd)
 {
+    printf("Inserting\n");
     if (head == NULL)
     {
-        head = calloc(1, sizeof(struct sockaddr_in));
+        head = calloc(1, sizeof(struct sock_queue_t));
         head->sockfd = sockfd;
         head->next = NULL;
     }
@@ -199,9 +184,12 @@ void insert_to_sock_queue(struct sock_queue_t *head, int *sockfd)
         {
             tmp = tmp->next;
         }
-        tmp->next = calloc(1, sizeof(struct sockaddr_in));
+        tmp->next = calloc(1, sizeof(struct sock_queue_t));
         tmp->sockfd = sockfd;
         tmp->next = NULL;
+    }
+    if(head != NULL) {
+        printf("\t\tEstupido PI\n");
     }
 }
 
@@ -218,12 +206,14 @@ void *sock_thread(void *data)
     { // Todo: STOP CONDITION ctrl+c
         // Here is the consume
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);
+        printf("Iteration from thread %ld\n", private_data->thread_number);
         if (shared_data->sock_queue != NULL)
         {
-            sockfd = shared_data->sock_queue->sockfd;
-            tmp = shared_data->sock_queue;
-            shared_data->sock_queue = shared_data->sock_queue->next;
-            free(tmp);
+            printf("Extracting socked?\n");
+            //sockfd = shared_data->sock_queue->sockfd;
+            //tmp = shared_data->sock_queue;
+            shared_data->sock_queue = NULL;// shared_data->sock_queue->next;
+            //free(tmp);
         }
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
         if (sockfd != NULL)
@@ -240,6 +230,7 @@ void *sock_thread(void *data)
             free(NULL);
             sockfd = NULL;
         }
+        sleep(1);
     }
     return NULL;
 }
@@ -311,31 +302,13 @@ void delete_server(int *sockfd, struct sockaddr_in *servaddr)
     free(servaddr);
 }
 
-int start_up_server(int *sockfd, struct sockaddr_in *servaddr)
+int start_up_server(struct sockaddr_in *servaddr)
 {
-    printf("No me he caido\n\n");
-    printf("HOLA\n\n");
-    // Creating socket file descriptor
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
-        perror("socket creation failed");
-        return 4;
-    }
-    printf("No me he caido\n\n");
     memset(servaddr, 0, sizeof(*servaddr));
-
     // Filling server information
     servaddr->sin_family = AF_INET; // IPv4
     servaddr->sin_addr.s_addr = INADDR_ANY;
     servaddr->sin_port = htons(PORT);
-
-    // Bind the socket with the server address
-    printf("No me he caido\n\n");
-    if (bind(sockfd, (const struct sockaddr *)servaddr, sizeof(*servaddr)) < 0)
-    {
-        perror("bind failed");
-        return 88;
-    }
     return 0;
 }
 
