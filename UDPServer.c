@@ -39,7 +39,7 @@ void delete_server(int *sockfd, struct sockaddr_in *servaddr);
 int create_threads(shared_data_t *shared_data);
 void *main_thread(void *data);
 void *sock_thread(void *data);
-void insert_to_sock_queue(struct sock_queue_t *head, int *sockfd);
+struct sock_queue_t * insert_to_sock_queue(struct sock_queue_t *head, int *sockfd);
 
 // VARIABLE GLOBAL. MR. JEISSON GET DOWN!
 //char* server_string;
@@ -133,7 +133,7 @@ void *main_thread(void *data)
 {
     private_data_t *private_data = (private_data_t *)data;
     shared_data_t *shared_data = private_data->shared_data;
-    printf("Hello from main thread %ld\n\n", private_data->thread_number);
+    printf("Hello from main thread %ld\n", private_data->thread_number);
     int *sockfd = NULL;
     struct sockaddr_in *servaddr = calloc(1, sizeof(struct sockaddr_in));
     if (start_up_server(servaddr) != 0)
@@ -144,7 +144,7 @@ void *main_thread(void *data)
     printf("Server start\n\n");
     while (true)
     {
-        sockfd = 40; //calloc(1, sizeof(int));
+        sockfd = calloc(1, sizeof(int));
         // Creating socket file descriptor
         /*
         if ((*sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
@@ -158,22 +158,23 @@ void *main_thread(void *data)
         }
         */
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);
-        insert_to_sock_queue(shared_data->sock_queue, sockfd);
+        //shared_data->sock_queue = 1;
+        shared_data->sock_queue = insert_to_sock_queue(shared_data->sock_queue, sockfd);
+        assert(shared_data->sock_queue);
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
-        printf("Main thread sleeping\n");
-        sleep(1);
+        //sleep(1);
     }
     delete_server(sockfd, servaddr);
     printf("\nServer end\n");
     return NULL;
 }
 
-void insert_to_sock_queue(struct sock_queue_t *head, int *sockfd)
+struct sock_queue_t* insert_to_sock_queue(struct sock_queue_t *head, int *sockfd)
 {
-    printf("Inserting\n");
     if (head == NULL)
     {
         head = calloc(1, sizeof(struct sock_queue_t));
+        assert(head);
         head->sockfd = sockfd;
         head->next = NULL;
     }
@@ -188,16 +189,14 @@ void insert_to_sock_queue(struct sock_queue_t *head, int *sockfd)
         tmp->sockfd = sockfd;
         tmp->next = NULL;
     }
-    if(head != NULL) {
-        printf("\t\tEstupido PI\n");
-    }
+    return head;
 }
 
 void *sock_thread(void *data)
 {
     private_data_t *private_data = (private_data_t *)data;
     shared_data_t *shared_data = private_data->shared_data;
-    printf("Hello from sock thread %ld\n\n", private_data->thread_number);
+    printf("Hello from sock thread %ld\n", private_data->thread_number);
     int *sockfd = NULL;
     struct sock_queue_t *tmp = NULL;
     struct sockaddr_in *cliaddr = calloc(1, sizeof(struct sockaddr_in));
@@ -206,18 +205,21 @@ void *sock_thread(void *data)
     { // Todo: STOP CONDITION ctrl+c
         // Here is the consume
         pthread_mutex_lock(&shared_data->can_acess_sock_queue);
-        printf("Iteration from thread %ld\n", private_data->thread_number);
+        // printf("Iteration from thread %ld\n", private_data->thread_number);
         if (shared_data->sock_queue != NULL)
         {
-            printf("Extracting socked?\n");
-            //sockfd = shared_data->sock_queue->sockfd;
-            //tmp = shared_data->sock_queue;
-            shared_data->sock_queue = NULL;// shared_data->sock_queue->next;
-            //free(tmp);
+            printf("\t\t\t\tExtracting socked\tThread: %ld\n", private_data->thread_number);
+            sockfd = shared_data->sock_queue->sockfd;
+            tmp = shared_data->sock_queue;
+            shared_data->sock_queue = shared_data->sock_queue->next;
+            free(tmp);
+            shared_data->sock_queue = NULL;
         }
         pthread_mutex_unlock(&shared_data->can_acess_sock_queue);
         if (sockfd != NULL)
         {
+            printf("Procesing client\n");
+            /*
             // Here is the dynamic magic
             if (receive_autentication_data(sockfd, cliaddr))
             {
@@ -227,7 +229,8 @@ void *sock_thread(void *data)
             {
                 perror("Failed to receive the file from the client\n");
             }
-            free(NULL);
+            */
+            free(sockfd);
             sockfd = NULL;
         }
         sleep(1);
