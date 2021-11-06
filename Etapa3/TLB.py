@@ -6,11 +6,11 @@ Diego Chinchilla Otárola B82227\
 Fabián Alonso González Rojas B83493\
 Rodrigo Li Qiu B94263"
 
-TLB_SIZE = 4
+TLB_SIZE = 8
 class Node:
     def __init__(self,index):
         self.page_number = 0
-        self.reference = 0
+        self.bitR = 0
         self.ram_space = 0
         self.TLB_space = index
         self.next = None
@@ -36,16 +36,16 @@ class Clock_List:
 
     def show_TLB(self):
         temp = self.first
-        print(f"[Page: {temp.page_number} : {temp.reference}]\n")
+        print(f"[Page: {temp.page_number} : {temp.bitR}]\n")
         while temp.next is not self.first:
             temp = self.first
-            print(f"[Pagina: {temp.page_number} : {temp.reference}]\n")
+            print(f"[Pagina: {temp.page_number} : {temp.bitR}]\n")
 
     def get_page_space(self, target):
         temp = self.first
         while temp is not None:
             if temp.page_number == target :
-                temp.reference =  1
+                temp.bitR =  1
                 return temp.ram_space
             elif temp.next == self.first:
                 return -1 #error
@@ -55,14 +55,14 @@ class Clock_List:
 
     def clock_algorithm(self):
         while(True):
-            if self.hand.reference == 1 :
-                self.hand.reference = 0
+            if self.hand.bitR == 1 :
+                self.hand.bitR = 0
                 tmp = self.hand.next
                 self.hand = tmp
 
             else:
                 tmp = self.hand
-                tmp2 = self.hand.reference
+                tmp2 = self.hand.bitR
                 self.hand = tmp2
                 return tmp.TLB_space
     
@@ -70,7 +70,7 @@ class Clock_List:
         tmp = self.first
         while tmp is not None:
             if tmp.TLB_space == space:
-                tmp.reference = 0
+                tmp.bitR = 0
                 tmp.ram_space = ram_space
                 tmp.page_number = new_page
                 return 1
