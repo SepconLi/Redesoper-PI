@@ -16,7 +16,8 @@ class Node:
         self.bitM = 0
         self.space = 0
         self.next = None
-    
+#Node ends
+
 class Clock_List:
     def __init__(self):
         self.first = None
@@ -104,3 +105,4 @@ class Clock_List:
             else:
                 tmp = tmp.next
         return -1
+#Clock list ends

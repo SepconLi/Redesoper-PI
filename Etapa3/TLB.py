@@ -14,6 +14,7 @@ class Node:
         self.ram_space = 0
         self.TLB_space = index
         self.next = None
+#Node ends
 
 class Clock_List:
     def __init__(self):
@@ -84,3 +85,5 @@ class Clock_List:
         for index in range (0,TLB_SIZE):
             self.append(index)
         self.hand = self.first
+
+#Clocklist ends
