@@ -40,7 +40,7 @@ class List:
             print(f"[Page: {value.page} : {value.presencia}]\n")
             value = value.next
     
-    def init_lsit(self):
+    def init_list(self):
         for index in range(1, MAX_NODES + 1):
             self.append(index)
 

@@ -41,10 +41,10 @@ class Clock_List:
 
     def show_RAM(self):
         tmp = self.first
-        printf(f"Page: {tmp.page} : {tmp.bitR}]\n")
+        print(f"Page: {tmp.page} : {tmp.bitR}]\n")
         while tmp.next is not self.first:
             tmp = tmp.next
-            printf(f"Page: {tmp.page} : {tmp.bitR}]\n")
+            print(f"Page: {tmp.page} : {tmp.bitR}]\n")
 
     def get_page(self, space):
         tmp = self.first
