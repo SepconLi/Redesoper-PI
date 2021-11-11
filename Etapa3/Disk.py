@@ -9,7 +9,8 @@ Rodrigo Li Qiu B94263"
 #Definir maximo
 MAX_DISK_SPACE = 1000
 
-MAX_PROVINCES = 30
+#Esto puede cambiar segun las decisiones grupales 
+MAX_PACKAGE_LENGTH = 30
 
 STRING_MAX_LENGTH = 33 # Puede cambiar segun estandares del grupo
 
