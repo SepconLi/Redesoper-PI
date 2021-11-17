@@ -14,11 +14,10 @@ import time
 import _thread
 import array
 #import table_node
-import threading
+import threading, queue
 from threading import Thread
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-PORT = 65432        # Port to listen on (non-privileged ports are > 1023)
 
 class table_node:
     #T,idProvincia,Puerto,Hops
@@ -41,6 +40,7 @@ class enrutador:
         self.my_port = 69
         self.neighbors = []
         self.rooting_table = []
+        self.queue = queue
         pass
     
     def connect():
@@ -52,7 +52,7 @@ class enrutador:
         pass
 
     def read_initial_configuration(self, thread_number):
-        f = open("cantonal.txt", "r")
+        f = open("1_vecino.txt", "r")
         for i in range(0, thread_number):
             f.readline()# Saltar linea del nombre del router
             f.readline()# Saltar ip
@@ -96,34 +96,45 @@ class enrutador:
                 message += ","
         return message
 
-    def sender_of_rooting_tables_adolfo(self):
+    def sender(self, print_mutex):
         msg = self.create_rooting_table_message()
-        for i in range(0, len(self.rooting_table)):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
-                c.connect((HOST, int(self.neighbors[i])))
-                c.send(msg.encode('utf-8'))
+        c = socket.socket()
+        for i in range(0, len(self.neighbors)):
+            print_mutex.acquire()
+            print('Connection ' + str(i) + ": <" + str(self.my_port) + "> <" + str(self.neighbors[i]) + ">")
+            print_mutex.release()
+            c.connect((HOST, int(self.neighbors[i])))
+            c.send(msg.encode('utf-8'))
+            c.close()
         pass
 
+    def on_new_client(self, conn, adrr, print_mutex):
+        msg = "a"
+        while True:
+            msg = conn.recv(1024)
+            if not msg:
+                break
+            else:
+                print_mutex.acquire()
+                print("\tStoring in: ", end = "")
+                print(self.my_port, end = " ")
+                print(msg)
+                print_mutex.release()
+        conn.close()
+
+    def listener(self, print_mutex):
+        s = socket.socket()
+        s.bind((HOST, int(self.my_port)))
+        while True:
+            s.listen(1)
+            conn, addr = s.accept()
+            _thread.start_new_thread(self.on_new_client,(conn,addr,print_mutex,))
+        s.close()
+
     def run_server(self, print_mutex):
-        _thread.start_new_thread(self.sender_of_rooting_tables_adolfo, ())
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((HOST, int(self.my_port)))
-            for i in range(0, 3):
-                s.listen()
-                conn, addr = s.accept()
-                with conn:
-                    print_mutex.acquire()
-                    print('\t\t\t\t\t\t\t\t\t\t\tConnected by', addr)
-                    print_mutex.release()
-                    while True:
-                        data = conn.recv(1024)
-                        if not data:
-                            break
-                        else:
-                            print_mutex.acquire()
-                            print("\t\t\t\t\t\t\t\t\t\t\tIm the port [" + self.my_port + "]: <", end = "")
-                            print(data, end = ">\n")
-                            print_mutex.release()
+        listener = _thread.start_new_thread(self.listener, (print_mutex,))
+        time.sleep(1)
+        self.sender(print_mutex)
 
 def run_router(thread_number, file_mutex, print_mutex):
     router = enrutador()
@@ -148,7 +159,7 @@ def create_routers(routers_number):
     for i in range(0, routers_number):
         _thread.start_new_thread(run_router, (i,file_mutex,print_mutex,))
     print("Hello from main thread")
-    time.sleep(3)
+    time.sleep(5)
     pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
