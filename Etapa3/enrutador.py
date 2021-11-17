@@ -32,10 +32,13 @@ class table_node:
         print(str(self.id_provincia) + ", " + str(self.port) + ", " + str(self.hops))
         pass
 
+    def to_string(self):
+        return str(self.id_provincia) + "," + str(self.port) + "," + str(self.hops)
+
 class enrutador:
     #T,idProvincia,Puerto,Hops
     def __init__(self):
-        self.my_ip = "Vacio"
+        self.my_port = 69
         self.neighbors = []
         self.rooting_table = []
         pass
@@ -57,7 +60,9 @@ class enrutador:
             for i in range(0, int(neigh_num)):
                 f.readline()
         f.readline()# Saltar linea del nombre del router
-        self.my_ip = f.readline()
+        aux = f.readline()
+        aux = aux[0:(len(aux)-1)]
+        self.my_port = aux
         my_neighbors_number = f.readline()
         for i in range(0, int(my_neighbors_number)):
             tmp = f.readline()
@@ -70,10 +75,12 @@ class enrutador:
     def initialize_rooting_table(self):
         for i in range(0, len(self.neighbors)):
             self.rooting_table.append(table_node(self.neighbors[i], self.neighbors[i], 1))
+        # Revisar cuales vectores/routers ya estan en la tabla
+        # Agregar los que faltan con vecino NULL y hops 999999
         pass
 
     def print_router_info(self):
-        print("My_ip: " + self.my_ip)
+        print("My_ip: " + self.my_port)
         print("Rooting table: ")
         for i in range(0, len(self.rooting_table)):
             print("\t\t", end = "")
@@ -81,14 +88,52 @@ class enrutador:
         print()
         pass
 
+    def create_rooting_table_message(self):
+        message = "t," + self.my_port
+        for i in range(0, len(self.neighbors)):
+            message += "," + self.neighbors[i]
+            if(i == len(self.neighbors)+1):
+                message += ","
+        return message
+
+    def run_server(self, print_mutex):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            print(self.my_port)
+            s.bind((HOST, int(self.my_port)))
+            s.listen()
+            conn, addr = s.accept()
+            with conn:
+                print('Connected by', addr)
+                msg = self.create_rooting_table_message()
+                for i in range(0, len(self.rooting_table)):
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
+                        c.connect((HOST, self.neighbors[i]))
+                        c.send(msg.encode('utf-8'))
+                while True:
+                    data = conn.recv(1024)
+                    if not data:
+                        break
+                    else:
+                        print_mutex
+                        print("Im the port " + self.my_port + " ", end = "")
+                        print(data)
+                        print_mutex
+
 def run_router(thread_number, file_mutex, print_mutex):
     router = enrutador()
     file_mutex.acquire()
     router.read_initial_configuration(thread_number)
-    print_mutex.acquire()
-    router.print_router_info()
-    print_mutex.release()
+    #print_mutex.acquire()
+    #router.print_router_info()
+    #print_mutex.release()
     file_mutex.release()
+    #a
+    #a
+    #a
+    #print_mutex.acquire()
+    #print("<" + router.create_rooting_table_message() + ">")
+    #print_mutex.release()
+    router.run_server(print_mutex)
     pass
 
 def create_routers(routers_number):

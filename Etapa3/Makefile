@@ -9,6 +9,10 @@ e:
 c:
 	python3 clientTCP.py
 
+.PHONY: d
+d:
+	python3 dijkstra.py
+
 .PHONY: clean
 clean:
 	rm -rf ./exe
