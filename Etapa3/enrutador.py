@@ -96,28 +96,34 @@ class enrutador:
                 message += ","
         return message
 
+    def sender_of_rooting_tables_adolfo(self):
+        msg = self.create_rooting_table_message()
+        for i in range(0, len(self.rooting_table)):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
+                c.connect((HOST, int(self.neighbors[i])))
+                c.send(msg.encode('utf-8'))
+        pass
+
     def run_server(self, print_mutex):
+        _thread.start_new_thread(self.sender_of_rooting_tables_adolfo, ())
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            print(self.my_port)
             s.bind((HOST, int(self.my_port)))
-            s.listen()
-            conn, addr = s.accept()
-            with conn:
-                print('Connected by', addr)
-                msg = self.create_rooting_table_message()
-                for i in range(0, len(self.rooting_table)):
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as c:
-                        c.connect((HOST, self.neighbors[i]))
-                        c.send(msg.encode('utf-8'))
-                while True:
-                    data = conn.recv(1024)
-                    if not data:
-                        break
-                    else:
-                        print_mutex
-                        print("Im the port " + self.my_port + " ", end = "")
-                        print(data)
-                        print_mutex
+            for i in range(0, 3):
+                s.listen()
+                conn, addr = s.accept()
+                with conn:
+                    print_mutex.acquire()
+                    print('\t\t\t\t\t\t\t\t\t\t\tConnected by', addr)
+                    print_mutex.release()
+                    while True:
+                        data = conn.recv(1024)
+                        if not data:
+                            break
+                        else:
+                            print_mutex.acquire()
+                            print("\t\t\t\t\t\t\t\t\t\t\tIm the port [" + self.my_port + "]: <", end = "")
+                            print(data, end = ">\n")
+                            print_mutex.release()
 
 def run_router(thread_number, file_mutex, print_mutex):
     router = enrutador()
@@ -142,7 +148,7 @@ def create_routers(routers_number):
     for i in range(0, routers_number):
         _thread.start_new_thread(run_router, (i,file_mutex,print_mutex,))
     print("Hello from main thread")
-    time.sleep(1)
+    time.sleep(3)
     pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
