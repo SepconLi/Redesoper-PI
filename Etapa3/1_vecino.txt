@@ -1,49 +1,71 @@
                 ROUTER 0
+127.0.0.1
 1024
 1
+127.0.0.1
 1124
                 ROUTER 1
+127.0.0.1
 1124
 1
+127.0.0.1
 1224
                 ROUTER 2
+127.0.0.1
 1224
 1
+127.0.0.1
 1324
                 ROUTER 3
+127.0.0.1
 1324
 1
+127.0.0.1
 1424
                 ROUTER 4
+127.0.0.1
 1424
 1
+127.0.0.1
 1524
                 ROUTER 5
+127.0.0.1
 1524
 1
+127.0.0.1
 1624
                 ROUTER 6
+127.0.0.1
 1624
 1
+127.0.0.1
 1724
                 ROUTER 7
+127.0.0.1
 1724
 1
+127.0.0.1
 1824
                 ROUTER 8
+127.0.0.1
 1824
 1
+127.0.0.1
 1924
                 ROUTER 9
+127.0.0.1
 1924
 1
+127.0.0.1
 1024
 
 
 # Formato:
 #   \t\t\t\tNombre del router\n
 #   IP_propia\n
+#   Host_propio\n
 #   Numero_Vecinos\n
-#   Vecinos\n
+#   Host_propio\n
+#   Host_vecino\n
 #
 # Nota: Poner distancia 1 en estos vecinos
