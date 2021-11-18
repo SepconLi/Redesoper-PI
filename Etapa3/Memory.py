@@ -31,10 +31,10 @@ class Memory:
                 space = self.ram.clock_algorithm() #If either isn't there, searh in RAM
                 if space[1] == 1:
                     #if isn't even there, them doesn't exists and we need to use disk
-                    virtual_mem = self.page.get_space(space[0]) #So we Modify it
+                    virtual_mem = self.page.get_space(space[0]) #So we look for it
                     new_page = self.ram.get_page(space[0])
                     self.disk.modify_page(virtual_mem,new_page)
-                virtual_mem = self.page.get_virtual_mem(page_num)
+                virtual_mem = self.page.get_ram_space(page_num) #Simulates disk from RAM (MMU)
                 page = self.disk.get_page(virtual_mem)
                 self.ram.replace_page(space[0],page)
                 self.page.modify_table(page_num,space[0])

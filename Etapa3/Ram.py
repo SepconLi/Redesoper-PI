@@ -94,7 +94,7 @@ class Clock_List:
 
     def modify_page(self,space,page):
         tmp = self.first
-        while tmp is not None:
+        while tmp != None:
             if tmp.space == space:
                 tmp.bitR = 1
                 tmp.bitM = 1

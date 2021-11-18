@@ -7,6 +7,7 @@ Fabián Alonso González Rojas B83493\
 Rodrigo Li Qiu B94263"
 
 TLB_SIZE = 8
+
 class Node:
     def __init__(self,index):
         self.page_number = 0
@@ -14,6 +15,7 @@ class Node:
         self.ram_space = 0
         self.TLB_space = index
         self.next = None
+
 #Node ends
 
 class Clock_List:
@@ -56,7 +58,7 @@ class Clock_List:
 
     def clock_algorithm(self):
         while(True):
-            if self.hand.bitR == 1 :
+            if self.hand.bitR == 1:
                 self.hand.bitR = 0
                 tmp = self.hand.next
                 self.hand = tmp
