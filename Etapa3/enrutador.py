@@ -229,6 +229,7 @@ class enrutador:
             print("\t\t\t\t"+ str(self.my_port) +" recibi: ",end="")
             print(msg)
             self.print_mutex.release()
+            #self.process_entry_message(msg)
             conn.close()
         self.print_mutex.acquire()
         print("Thread (listener/server): "+str(self.my_port)+" end")
@@ -255,11 +256,11 @@ class enrutador:
                 self.print_mutex.release()
                 c.send(msg.encode('utf-8'))
                 c.close()
-                self.mutex_red.release()
             except:
                 self.print_mutex.acquire()
                 print("\t\t\tFailed connecting: <" + str(self.my_port) + "> <" + str(self.neighbors_port[0]) + ">")
                 self.print_mutex.release()
+            self.mutex_red.release()
         self.print_mutex.acquire()
         print("Thread (sender/client): "+str(self.my_port)+" end")
         self.print_mutex.release()
@@ -306,5 +307,5 @@ def serial_router():
     pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    simulate(5)# Multiple routers simulation
-    #serial_router()
+    #simulate(5)# Multiple routers simulation
+    serial_router()
