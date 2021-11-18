@@ -14,6 +14,9 @@ import array
 #import table_node
 import threading, queue
 from threading import Thread
+import re
+import networkx as nx
+from networkx.drawing.layout import planar_layout
 
 # Tabla de enrutamiento
 class table_node:
@@ -33,10 +36,11 @@ class table_node:
     def to_string(self):
         return "t," + str(self.ip) + "," + str(self.port) + "," + str(self.ip_dest) + "," + str(self.port_dest) + "," + str(self.hops) + "]"
     
-    def compare_to(self, other):
-        if(self.to_string() == other.to_string()):
+    def compare_to(self, origin, dest, hops):
+        if(self.port == origin and self.port_dest == dest and self.hops == hops):
             return True
         return False
+            
 class enrutador:
     #T,idProvincia,Puerto,Hops
     def __init__(self, file, file_mutex, print_mutex):
@@ -55,7 +59,7 @@ class enrutador:
         #Array de routers en la red
         self.vector_routers = []# 1024, 1124, 1324
         #Edges para Dijkstra, aqui estan todas las rutas de distancia 1 de cada router
-        self.edges = [0,0,{'hops': 0}]
+        self.edges = []
         #Tabla de enrutamiento
         self.routing_table = []
         pass
@@ -94,12 +98,27 @@ class enrutador:
         self.file_mutex.release()
         pass
 
+
+    def update_routing_table(self):
+        G = nx.Graph()
+        for i in self.vector_routers:
+            G.add_node(i)
+        G.add_edges_from(self.edges)
+        for i in self.vector_routers:
+            print(str(i) + ":")
+            for k in self.vector_routers:
+                if i == k:
+                    continue
+                else:
+                    length = nx.shortest_path_length(G, source=i, target=k, weight='hops')
+                    print(f"from {str(i)} to {str(k)} : " + str(length) + " hops")
+
     # TODO: Hacer esta vara conectado con lo de Oper
     def initialize_routing_table(self):
         for i in range(0, self.neighbors_number):
             node = table_node(self.neighbors_ip[i], self.neighbors_port[i], self.neighbors_ip[i], self.neighbors_port[i], 1)
             self.routing_table.append(node)
-            self.edges.append((node.port,node.port_dest,{'hops': node.hops})) 
+            self.edges.append(( node.port, node.port_dest, {'hops':node.hops} ))
         pass
 
     def print_router_info(self):
@@ -159,10 +178,26 @@ class enrutador:
             #for i in range(0, len(self.edges)):
             flag = True
             for i in range(0,len(self.edges)):
-                if(node.compare_to(self.edges[i])):
-                    flag = False 
+                origin = 0
+                dest = 0
+                hops = 0
+                edg = str(self.edges[i])
+                m = re.search("'(.*?)', ",edg)
+                if m:
+                    origin = int(m.group(1))
+                c = re.search(", '(.*?)',",edg)
+                if c:
+                    dest = int(c.group(1))
+                z = re.search("{'hops': '(.*?)'}",edg)
+                if z:
+                    hops = int(z.group(1))
+
+                if(node.compare_to(origin,dest,hops)):
+                    flag = False
             if(flag == True):
-                self.edges.append((node.port,node.port_dest,{'hops': node.hops}))        
+                self.edges.append((node.port, node.port_dest, {'hops':int(node.hops)}))
+
+
         # Almacena la informacion intercambiandola por que esta en la routing table
         # Reenvia el mensaje a sus vecinos
         # Pero no a quien se la acaba de mandar, y nunca envia la routing table
@@ -236,6 +271,7 @@ def create_routers(routers_number):
     time.sleep(5)
     pass
 
+
 def serial_router():
     file_mutex = threading.Lock()
     print_mutex = threading.Lock()
@@ -252,6 +288,7 @@ def serial_router():
     router.process_entry_message("t,127.0.0.1,1424,127.0.0.1,1524,1")
     router.process_entry_message("t,127.0.0.1,1924,127.0.0.1,1024,1")
     router.process_entry_message("t,127.0.0.1,1324,127.0.0.1,1424,1")
+    router.update_routing_table()
     pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
