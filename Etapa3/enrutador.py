@@ -32,7 +32,7 @@ class table_node:
         pass
 
     def to_string(self):
-        return "[t," + str(self.ip) + "," + str(self.port) + "," + str(self.ip_dest) + "," + str(self.port_dest) + "," + str(self.hops) + "]"
+        return str(self.ip) + "," + str(self.port) + "," + str(self.ip_dest) + "," + str(self.port_dest) + "," + str(self.hops)
     
     def compare_to(self, origin, dest, hops):
         if(self.port == origin and self.port_dest == dest and self.hops == hops):
@@ -41,12 +41,12 @@ class table_node:
             
 class enrutador:
     #T,idProvincia,Puerto,Hops
-    def __init__(self, file, file_mutex, print_mutex, mutex_red, queue):
+    def __init__(self, file, file_mutex, print_mutex, mutex_red):
         #Paralelismo
         self.mutex_red = mutex_red
         self.file_mutex = file_mutex
         self.print_mutex = print_mutex
-        self.queue = queue
+        self.queue = queue.Queue()
         #Inicializacion
         self.file_route = file
         #Datos de este router
@@ -137,11 +137,19 @@ class enrutador:
 
     def create_routing_table_message(self):
         separation_char = ","
+        message = "t"
+        for i in range(0, len(self.routing_table)):
+            message += separation_char + self.routing_table[i].to_string()
+        return message
+    
+    def print_routing_table(self):
+        separation_char = ","
         message = "\nMy routing table: "
         message += "[" + self.my_ip + separation_char + self.my_port + "]\n"
         for i in range(0, len(self.routing_table)):
-            message += "\t" + self.routing_table[i].to_string() + "\n"
-        return message
+            message += "\t[" + self.routing_table[i].to_string() + "]\n"
+        print(message)
+        pass
 
     '''
         def resend_routing_table(self, msg):
@@ -206,41 +214,32 @@ class enrutador:
             print(msg[0])
         pass
 
-    # Procesa las entradas de un cliente enviandolas al metodo de procesar entrada
-    def on_new_client(self, conn, adrr):
-        msg = "a"
-        while True:
-            msg = conn.recv(1024)
-            self.print_mutex.acquire()
-            print("\tStoring in: ", end = "")
-            print(self.my_port, end = " ")
-            print(msg)
-            self.print_mutex.release()
-            self.queue.put(msg.decode())
-        conn.close()
-
     # Manda todas las entradas a un thread propio 
-    def listener_thread(self):
+    def listener_thread(self):#aka: Server_tcp
         s = socket.socket()
         s.bind((self.my_ip, int(self.my_port)))
         s.listen(1)
+        self.print_mutex.acquire()
+        print("\tServer " + str(self.my_port) + " is online")
+        self.print_mutex.release()
         while True:
             conn, addr = s.accept()
             msg = conn.recv(1024)
             self.print_mutex.acquire()
-            print("\t\t\t\tRecibi: ",end="")
+            print("\t\t\t\t"+ str(self.my_port) +" recibi: ",end="")
             print(msg)
             self.print_mutex.release()
             conn.close()
         self.print_mutex.acquire()
-        print("Thread (listener/server): "+str(self.my_port)+" ded")
+        print("Thread (listener/server): "+str(self.my_port)+" end")
         self.print_mutex.release()
         pass
 
     # TODO: Conectar esto con Oper y que la cola venga de la memoria
-    def sender_thread(self):
-        msg = self.queue.get(block=True, timeout=None)
+    def sender_thread(self):#aka: Client_tcp
         c = socket.socket()
+        # Envio mi propia tabla de enrutamiento como primer mensaje
+        self.queue.put(self.create_routing_table_message(), block=True, timeout=None)
         while True:
             # TODO: Hacer ram ram, vrum vrum, oper oper con la cola
             # Saca de la cola el siguiente mensaje a mandar
@@ -262,23 +261,21 @@ class enrutador:
                 print("\t\t\tFailed connecting: <" + str(self.my_port) + "> <" + str(self.neighbors_port[0]) + ">")
                 self.print_mutex.release()
         self.print_mutex.acquire()
-        print("Thread (sender/client): "+str(self.my_port)+" ded")
+        print("Thread (sender/client): "+str(self.my_port)+" end")
         self.print_mutex.release()
         pass
 
     def run_server(self):
-        self.queue.put("t,127.0.0.1,1124,127.0.0.1,1224,1", block=True, timeout=None)
         _thread.start_new_thread(self.listener_thread, ())
         time.sleep(1)
         self.sender_thread()
 # FIN DE CLASE ENRUTADOR ---------------------------------------------------------
-queue = queue.Queue()#Test Queue
 
 def run_router(thread_number, file_mutex, print_mutex, mutex_red):
-    router = enrutador("1_vecino.txt", file_mutex, print_mutex, mutex_red, queue)
+    router = enrutador("1_vecino.txt", file_mutex, print_mutex, mutex_red)
     router.read_initial_configuration(thread_number)
     router.initialize_routing_table()
-    print(router.create_routing_table_message())
+    router.print_routing_table()
     router.run_server()
     pass
 
@@ -296,16 +293,16 @@ def serial_router():
     mutex_red = threading.Lock()
     file_mutex = threading.Lock()
     print_mutex = threading.Lock()
-    router = enrutador("1_vecino.txt", file_mutex, print_mutex, mutex_red, queue)
+    router = enrutador("1_vecino.txt", file_mutex, print_mutex, mutex_red)
     router.read_initial_configuration(0)
     router.initialize_routing_table()
-    print(router.create_routing_table_message())
+    router.print_routing_table()
     router.process_entry_message("t,127.0.0.1,1124,127.0.0.1,1224,1")
     router.process_entry_message("t,127.0.0.1,1224,127.0.0.1,1324,1")
     router.process_entry_message("t,127.0.0.1,1324,127.0.0.1,1424,1")
     router.process_entry_message("t,127.0.0.1,1424,127.0.0.1,1024,1")
     router.update_routing_table()
-    print(router.create_routing_table_message())
+    router.print_routing_table()
     pass
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
