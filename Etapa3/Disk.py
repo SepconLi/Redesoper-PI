@@ -24,7 +24,7 @@ class Disk:
 
     def add_province(self,ip):
         tmp_ip = ""
-        for index in range(0,MAX_PROVINCES - 1):
+        for index in range(0,MAX_PACKAGE_LENGTH - 1):
             if index < 2:
                 self.stringZero+= ip[index]
                 tmp_ip+= ip[index]
@@ -34,7 +34,7 @@ class Disk:
         self.IPs_order.append(tmp_ip)
         tmp_ip = ""
         #Esto puede cambiar por los estandaraes de nuestro grupo
-        my_id = my_ip[2]
+        my_id = ip[2]
         my_id += my_id[3]
         #####################################################
         my_partner = self.get_relative(my_id)
@@ -48,14 +48,14 @@ class Disk:
         tmp_ip = tmp
         tmp_ip += '0'
         self.IPs_order.append(tmp_ip)
-        for index in range(0,MAX_PROVINCES - 1):
+        for index in range(0,MAX_PACKAGE_LENGTH - 1):
             if index < 4:
                 self.stringZero += tmp[index]
             else:
                 self.stringZero += '0'
     def add_ip(self,ip):
         self.IPs_order.append(ip)
-        for index in range (0,MAX_PROVINCES - 1):
+        for index in range (0,MAX_PACKAGE_LENGTH - 1):
             if index < 5:
                 self.stringZero += ip[index]
             else:
