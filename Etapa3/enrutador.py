@@ -32,7 +32,11 @@ class table_node:
 
     def to_string(self):
         return "t," + str(self.ip) + "," + str(self.port) + "," + str(self.ip_dest) + "," + str(self.port_dest) + "," + str(self.hops) + "]"
-
+    
+    def compare_to(self, other):
+        if(self.to_string() == other.to_string()):
+            return True
+        return False
 class enrutador:
     #T,idProvincia,Puerto,Hops
     def __init__(self, file, file_mutex, print_mutex):
@@ -51,7 +55,7 @@ class enrutador:
         #Array de routers en la red
         self.vector_routers = []# 1024, 1124, 1324
         #Edges para Dijkstra, aqui estan todas las rutas de distancia 1 de cada router
-        self.edges = []
+        self.edges = [0,0,{'hops': 0}]
         #Tabla de enrutamiento
         self.routing_table = []
         pass
@@ -93,7 +97,9 @@ class enrutador:
     # TODO: Hacer esta vara conectado con lo de Oper
     def initialize_routing_table(self):
         for i in range(0, self.neighbors_number):
-            self.routing_table.append(table_node(self.neighbors_ip[i], self.neighbors_port[i], self.neighbors_ip[i], self.neighbors_port[i], 1))
+            node = table_node(self.neighbors_ip[i], self.neighbors_port[i], self.neighbors_ip[i], self.neighbors_port[i], 1)
+            self.routing_table.append(node)
+            self.edges.append((node.port,node.port_dest,{'hops': node.hops})) 
         pass
 
     def print_router_info(self):
@@ -136,11 +142,27 @@ class enrutador:
     # El primer char era 't'
     def propagate_routing_table(self, msg):
         split_array = msg.split(",")
+        flag = True
         # 127.0.0.1 1224 127.0.0.1 1324 1
         table_length = int(len(split_array)/5)
         for i in range(0, table_length, 5):
-            node = table_node(split_array[i], split_array[i+1], split_array[i+2], split_array[i+2], split_array[i+4])
+            node = table_node(split_array[i], split_array[i+1], split_array[i+2], split_array[i+3], split_array[i+4])
             node.print_route()
+            #Llena vector_routers
+            for i in range(0, len(self.vector_routers)):
+                if(self.vector_routers[i] == node.port):
+                    flag = False
+            if(flag == True):
+                self.vector_routers.append(node.port) 
+            #for i in range(0, len(self.vector_routers)): //Imprimir ports en la lista
+                #print(self.vector_routers[i])
+            #for i in range(0, len(self.edges)):
+            flag = True
+            for i in range(0,len(self.edges)):
+                if(node.compare_to(self.edges[i])):
+                    flag = False 
+            if(flag == True):
+                self.edges.append((node.port,node.port_dest,{'hops': node.hops}))        
         # Almacena la informacion intercambiandola por que esta en la routing table
         # Reenvia el mensaje a sus vecinos
         # Pero no a quien se la acaba de mandar, y nunca envia la routing table
