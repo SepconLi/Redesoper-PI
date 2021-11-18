@@ -7,7 +7,7 @@ Fabián Alonso González Rojas B83493\
 Rodrigo Li Qiu B94263"
 
 #Definir maximo
-MAX_DISK_SPACE = 1000
+MAX_DISK_SPACE = 1440 # 20 Nodos de 72 de espacio cada uno
 
 #Esto puede cambiar segun las decisiones grupales 
 MAX_PACKAGE_LENGTH = 30
@@ -103,19 +103,19 @@ class Disk:
                             temp += '0'
                             self.add_ip(temp)
     def modify_page(self,page_num, page):
-        space = page_num * 58
+        space = page_num * 72
         char = ''
         counter = 0
-        for index in range(space, space+58):
+        for index in range(space, space+72):
             char = page[counter]
             self.disk_mem[index] = char
             counter += 1
         
     def get_page(self,page_num):
         page = page_num - 1
-        space = page * 58
+        space = page * 72
         info = []
-        for index in range(space, space + 58):
+        for index in range(space, space + 72):
             info.append(self.disk_mem[index])
         return info
 
